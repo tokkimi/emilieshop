@@ -21,6 +21,9 @@ export const memoryLinks = sqliteTable('memory_links', {
 export const approvals = sqliteTable('approvals', {
   id: text('id').primaryKey(), projectId: text('project_id').notNull().references(() => projects.id), ownerId: text('owner_id').notNull().references(() => users.id), versionHash: text('version_hash').notNull(), approvedAt: integer('approved_at', { mode: 'timestamp' }).notNull(), userAgent: text('user_agent'),
 }, (table) => [index('idx_approvals_project_id').on(table.projectId)]);
+export const bookGenerations = sqliteTable('book_generations', {
+  id: text('id').primaryKey(), projectId: text('project_id').notNull().references(() => projects.id), ownerId: text('owner_id').notNull().references(() => users.id), locale: text('locale').notNull().default('fr'), status: text('status').notNull().default('ready'), model: text('model').notNull(), inputJson: text('input_json').notNull(), resultJson: text('result_json').notNull(), usageJson: text('usage_json').notNull().default('{}'), version: integer('version').notNull().default(1), createdAt: integer('created_at', { mode: 'timestamp' }).notNull(), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [index('idx_book_generations_project_updated').on(table.projectId, table.updatedAt), index('idx_book_generations_owner').on(table.ownerId)]);
 export const messageThreads = sqliteTable('message_threads', {
   id: text('id').primaryKey(), userId: text('user_id').notNull().references(() => users.id), projectId: text('project_id').references(() => projects.id), status: text('status').notNull().default('open'), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 }, (table) => [index('idx_threads_user_updated').on(table.userId, table.updatedAt)]);

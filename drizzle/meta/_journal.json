@@ -22,6 +22,13 @@
       "when": 1787667992517,
       "tag": "0002_public_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787670005152,
+      "tag": "0003_vengeful_jackal",
+      "breakpoints": true
     }
   ]
 }
