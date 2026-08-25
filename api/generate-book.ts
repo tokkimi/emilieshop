@@ -1,7 +1,7 @@
 import { generateText, Output } from 'ai';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { z } from 'zod';
-import { fallbackBook, type BookGenerationInput, type BookPage } from '../lib/book';
+import { fallbackBook, type BookGenerationInput, type BookPage } from '../lib/book.js';
 
 export const config = { maxDuration: 60 };
 
