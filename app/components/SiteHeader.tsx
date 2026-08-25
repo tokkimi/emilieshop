@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from './SafeLink';
 import { HomeThemeSelector } from './HomeThemeSelector';
 
 export function SiteHeader({ compact = false, locale = 'fr', homeThemes = locale === 'en' }: { compact?: boolean; locale?: 'fr' | 'en'; homeThemes?: boolean }) {
