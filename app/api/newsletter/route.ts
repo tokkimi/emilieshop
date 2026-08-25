@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { getDb } from '../../../db';
+import { newsletterSubscribers } from '../../../db/schema';
+export async function POST(request:Request){const input=await request.json() as {email?:string;locale?:string;consent?:boolean;segment?:string};const email=String(input.email||'').trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(email)||input.consent!==true)return NextResponse.json({error:'Courriel et consentement requis'},{status:400});await getDb().insert(newsletterSubscribers).values({email,locale:input.locale==='en'?'en':'fr',segment:String(input.segment||'owner').slice(0,30),consentSource:'website-explicit-opt-in',consentAt:new Date()}).onConflictDoUpdate({target:newsletterSubscribers.email,set:{status:'subscribed',unsubscribedAt:null,consentAt:new Date(),consentSource:'website-explicit-opt-in'}});return NextResponse.json({ok:true},{status:201})}

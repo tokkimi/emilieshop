@@ -15,7 +15,7 @@ export function SiteHeader({ compact = false, locale = 'fr' }: { compact?: boole
       </nav>
       <div className="header-actions">
         <Link className="locale-link" href={en ? '/' : '/en'}>{en ? 'FR' : 'EN'}</Link>
-        <Link className="text-link" href={en ? '/en/profile' : '/profil'}>{en ? 'My space' : 'Mon espace'}</Link>
+        <Link className="text-link" href={en ? '/en/sign-in' : '/connexion'}>{en ? 'Sign in' : 'Connexion'}</Link>
         <Link className="button button-small" href={en ? '/en/studio' : '/atelier'}>{en ? 'Create my book' : 'Créer mon livre'}</Link>
       </div>
     </header>
@@ -30,7 +30,7 @@ export function SiteFooter({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
       <div><h4>{en ? 'Explore' : 'Explorer'}</h4><Link href={en ? '/en#how' : '/#comment'}>{en ? 'How it works' : 'Comment ça marche'}</Link><Link href={en ? '/en#collections' : '/#collections'}>Collections</Link><Link href={en ? '/en/studio' : '/atelier'}>{en ? 'Create my book' : 'Créer mon livre'}</Link></div>
       <div><h4>{en ? 'Professionals' : 'Professionnels'}</h4><Link href={en ? '/en/professionals' : '/professionnels'}>{en ? 'Realtor offer' : 'Offre courtiers'}</Link>{!en ? <Link href="/admin">Administration</Link> : null}<a href="mailto:bonjour@memoiremaison.ca">{en ? 'Contact us' : 'Nous écrire'}</a></div>
       <div><h4>{en ? 'Receive our stories' : 'Recevoir nos histoires'}</h4><p>{en ? 'A gentle letter about home, memory and new beginnings.' : 'Une lettre douce sur la maison, la mémoire et les nouveaux départs.'}</p><form className="newsletter"><label className="sr-only" htmlFor={`newsletter-email-${locale}`}>{en ? 'Your email' : 'Votre courriel'}</label><input id={`newsletter-email-${locale}`} type="email" placeholder={en ? 'Your email' : 'Votre courriel'} /><button type="submit">→</button></form></div>
-      <small>© 2026 Mémoire Maison · Québec, Canada · {en ? 'Privacy · Consents' : 'Confidentialité · Consentements'}</small>
+      <small>© 2026 Mémoire Maison · Québec, Canada · <Link href={en ? '/en/terms' : '/conditions-generales'}>{en ? 'Terms' : 'Conditions générales'}</Link> · <Link href={en ? '/en/privacy' : '/politique-confidentialite'}>{en ? 'Privacy' : 'Confidentialité'}</Link> · {!en ? <><Link href="/consentements">Consentements</Link> · <Link href="/livraison-retours">Livraison & retours</Link></> : 'Consents'}</small>
     </footer>
   );
 }

@@ -13,8 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://memoire-maison-emilie.bimabima700700.chatgpt.site'),
   title: 'Mémoire Maison — Chaque maison a une histoire',
   description: 'Créez un livre souvenir personnalisé de votre maison, à partir de vos photos, de vos mots et de votre voix.',
+  alternates: { canonical: '/', languages: { 'fr-CA': '/', 'en-CA': '/en' } },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_CA',
+    alternateLocale: ['en_CA'],
+    title: 'Mémoire Maison — Chaque maison a une histoire',
+    description: 'Créez un livre souvenir personnalisé à partir de vos photos, de vos mots et de votre voix.',
+    images: [{ url: '/og.png', width: 1730, height: 909, alt: 'Mémoire Maison — Chaque maison a une histoire' }],
+  },
+  twitter: { card: 'summary_large_image', title: 'Mémoire Maison', description: 'Chaque maison a une histoire.', images: ['/og.png'] },
 };
 
 export default function RootLayout({

@@ -85,7 +85,7 @@ export function BookCustomizer() {
             <p>Aperçu en direct</p><div className={`preview-book ${color}`}><div className="preview-window"><span className="mini-house" /></div><h2>{title || 'Votre titre'}</h2><small>{years || 'Votre sous-titre'}</small></div><div className="preview-caption"><span>Format 21 × 21 cm</span><span>20 à 30 pages</span></div>
           </aside>
         </div>
-        <div className="studio-nav"><button onClick={previous} disabled={step === 1}>← Retour</button><span>{step} / 4</span>{step < 4 ? <button className="button" onClick={next}>Continuer →</button> : <Link className="button" href="/profil">Voir mon espace →</Link>}</div>
+        <div className="studio-nav"><button onClick={previous} disabled={step === 1}>← Retour</button><span>{step} / 4</span>{step < 4 ? <button className="button" onClick={next}>Continuer →</button> : <Link className="button" href="/apercu">Générer mon aperçu →</Link>}</div>
       </main>
     </div>
   );

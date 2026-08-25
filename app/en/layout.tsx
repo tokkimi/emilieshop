@@ -1,0 +1,3 @@
+import type { Metadata } from 'next';
+export const metadata:Metadata={title:'Mémoire Maison — Every home has a story',description:'Create a personalized home memory book from your photos, words and voice.',alternates:{canonical:'/en',languages:{'fr-CA':'/','en-CA':'/en'}},openGraph:{locale:'en_CA',title:'Mémoire Maison — Every home has a story',description:'Create a personalized home memory book from your photos, words and voice.',images:[{url:'/og.png',width:1730,height:909,alt:'Mémoire Maison — Every home has a story'}]},twitter:{card:'summary_large_image',title:'Mémoire Maison',description:'Every home has a story.',images:['/og.png']}};
+export default function EnglishLayout({children}:{children:React.ReactNode}){return children}

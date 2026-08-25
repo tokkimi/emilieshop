@@ -1,9 +1,5 @@
-import Link from 'next/link';
-import { requireChatGPTUser, chatGPTSignOutPath } from '../chatgpt-auth';
+import { requireChatGPTUser } from '../chatgpt-auth';
 import { SiteHeader } from '../components/SiteHeader';
-
-export const dynamic = 'force-dynamic';
-export default async function ProfilePage() {
-  const user = await requireChatGPTUser('/profil');
-  return <><SiteHeader compact /><main className="profile-page"><aside className="profile-nav"><div className="profile-person"><span>{user.displayName.slice(0, 2).toUpperCase()}</span><div><b>{user.displayName}</b><small>{user.email}</small></div></div><nav><button className="active">⌂ Mes projets</button><button>♡ Mes Memory Links</button><button>□ Mes commandes</button><button>◎ Mon profil</button></nav><a href={chatGPTSignOutPath('/')}>Se déconnecter</a></aside><section className="profile-content"><div className="profile-heading"><div><p className="eyebrow">Mon espace</p><h1>Vos histoires,<br />au même endroit.</h1></div><Link className="button" href="/atelier">＋ Nouveau livre</Link></div><div className="current-project"><div className="mini-book forest"><span>NOTRE<br />MAISON</span><small>2008 — 2026</small></div><div className="project-info"><p className="eyebrow">Projet en cours · 72 %</p><h2>La maison des Érables</h2><p>284, rue des Érables · Québec</p><div className="progress"><i style={{ width: '72%' }} /></div><ul><li className="done">✓ Couverture choisie</li><li className="done">✓ 10 réponses complétées</li><li className="active">• 14 photos sur 20 ajoutées</li><li>○ Aperçu à venir</li></ul><Link className="button" href="/atelier">Continuer mon projet →</Link></div><div className="project-status"><span>Prochaine étape</span><b>Ajoutez vos dernières photos</b><small>Environ 4 minutes</small></div></div><h2 className="profile-subtitle">Archives & souvenirs</h2><div className="archive-grid"><article><div className="archive-cover">MM</div><div><small>Memory Link</small><h3>La maison de mes parents</h3><p>Actif jusqu’au 12 juin 2036</p><Link href="/memory/demo">Ouvrir l’archive →</Link></div></article><article className="empty-archive"><span>＋</span><p>Un Memory Link apparaîtra ici après la livraison de votre premier livre.</p></article></div></section></main></>;
-}
+import { CustomerDashboard } from '../components/CustomerDashboard';
+export const dynamic='force-dynamic';
+export default async function ProfilePage(){const user=await requireChatGPTUser('/profil');return <><SiteHeader compact/><CustomerDashboard name={user.displayName} email={user.email}/></>}

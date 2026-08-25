@@ -18,3 +18,21 @@ export const professionalAccounts = sqliteTable('professional_accounts', {
 export const memoryLinks = sqliteTable('memory_links', {
   id: text('id').primaryKey(), projectId: text('project_id').notNull().unique().references(() => projects.id), ownerId: text('owner_id').notNull().references(() => users.id), slug: text('slug').notNull().unique(), accessCodeHash: text('access_code_hash'), status: text('status').notNull().default('private'), expiresAt: integer('expires_at', { mode: 'timestamp' }), createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
+export const approvals = sqliteTable('approvals', {
+  id: text('id').primaryKey(), projectId: text('project_id').notNull().references(() => projects.id), ownerId: text('owner_id').notNull().references(() => users.id), versionHash: text('version_hash').notNull(), approvedAt: integer('approved_at', { mode: 'timestamp' }).notNull(), userAgent: text('user_agent'),
+}, (table) => [index('idx_approvals_project_id').on(table.projectId)]);
+export const messageThreads = sqliteTable('message_threads', {
+  id: text('id').primaryKey(), userId: text('user_id').notNull().references(() => users.id), projectId: text('project_id').references(() => projects.id), status: text('status').notNull().default('open'), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [index('idx_threads_user_updated').on(table.userId, table.updatedAt)]);
+export const messages = sqliteTable('messages', {
+  id: text('id').primaryKey(), threadId: text('thread_id').notNull().references(() => messageThreads.id), senderId: text('sender_id').notNull(), body: text('body').notNull(), attachmentKey: text('attachment_key'), createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [index('idx_messages_thread_created').on(table.threadId, table.createdAt)]);
+export const newsletterSubscribers = sqliteTable('newsletter_subscribers', {
+  email: text('email').primaryKey(), locale: text('locale').notNull().default('fr'), segment: text('segment').notNull().default('owner'), status: text('status').notNull().default('subscribed'), consentSource: text('consent_source').notNull(), consentAt: integer('consent_at', { mode: 'timestamp' }).notNull(), unsubscribedAt: integer('unsubscribed_at', { mode: 'timestamp' }),
+});
+export const analyticsEvents = sqliteTable('analytics_events', {
+  id: text('id').primaryKey(), visitorId: text('visitor_id').notNull(), eventName: text('event_name').notNull(), path: text('path').notNull(), metadataJson: text('metadata_json').notNull().default('{}'), createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+}, (table) => [index('idx_analytics_event_created').on(table.eventName, table.createdAt)]);
+export const siteSettings = sqliteTable('site_settings', {
+  key: text('key').primaryKey(), valueJson: text('value_json').notNull(), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
