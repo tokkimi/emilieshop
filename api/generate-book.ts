@@ -16,6 +16,7 @@ const pageSchema = z.object({
   mediaIds: z.array(z.string()).max(6), layout: z.enum(['editorial', 'full-photo', 'split', 'collage', 'minimal']),
 });
 const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(10) });
+const BOOK_MODEL = process.env.BOOK_MODEL || 'openai/gpt-4.1-nano';
 
 type ApiRequest = IncomingMessage & { body?: unknown };
 const send = (response: ServerResponse, status: number, value: unknown) => { response.statusCode = status; response.setHeader('content-type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); };
@@ -32,7 +33,7 @@ export default async function handler(request: ApiRequest, response: ServerRespo
   const answers = Object.entries(input.answers).filter(([, value]) => value.trim()).map(([key, value]) => `${key}: ${value}`).join('\n');
   try {
     const result = await generateText({
-      model: 'openai/gpt-5.6-luna',
+      model: BOOK_MODEL,
       output: Output.object({ name: 'BookComposition', description: 'A refined page-by-page family memory book composition', schema: outputSchema }),
       system: `You are an expert editorial director for premium family memory books. Compose a warm, restrained, factual narrative using only the supplied memories. Never invent names, dates, addresses or events. Write in ${input.locale === 'en' ? 'English' : 'French'}. Produce 6 to 10 interior pages. Vary layouts. Assign only supplied media IDs. Photos can appear in print. Video and audio belong on an interactive page and are represented in print by a private QR link. Keep prose elegant, natural and concise. Never mention artificial intelligence, automation, a model, or generation.`,
       prompt: `TITLE: ${input.title}\nSUBTITLE: ${input.subtitle}\nADDRESS: ${input.address}\nCOLLECTION: ${input.collection}\n\nFAMILY ANSWERS:\n${answers || 'No detailed answer yet; keep copy minimal and invite later editing.'}\n\nAVAILABLE MEDIA:\n${mediaList}`,
@@ -40,7 +41,7 @@ export default async function handler(request: ApiRequest, response: ServerRespo
     const base = fallbackBook(input, generationId);
     const pages: BookPage[] = [base.pages[0], ...result.output.pages.map((page) => ({ ...page, id: crypto.randomUUID() }))];
     const generated = { ...base, pages };
-    return send(response, 200, { book: generated, generation: { id: generationId, model: 'openai/gpt-5.6-luna', usage: result.totalUsage, finishReason: result.finishReason } });
+    return send(response, 200, { book: generated, generation: { id: generationId, model: BOOK_MODEL, usage: result.totalUsage, finishReason: result.finishReason } });
   } catch (error) {
     console.error('Book composition failed; returning resilient composition.', error);
     return send(response, 200, { book: fallbackBook(input, generationId), generation: { id: generationId, model: 'resilient-editorial', fallback: true } });
