@@ -2,7 +2,7 @@ import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { fallbackBook, type BookGenerationInput, type BookPage } from '../lib/book';
 
-export const config = { runtime: 'edge', maxDuration: 60 };
+export const config = { maxDuration: 60 };
 
 const inputSchema = z.object({
   projectId: z.string().optional(), locale: z.enum(['fr', 'en']), title: z.string().min(1).max(100), subtitle: z.string().max(80), address: z.string().max(180), collection: z.string().max(30), coverColor: z.string().max(20),
