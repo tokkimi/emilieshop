@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1787666934510,
+      "tag": "0000_grey_changeling",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787667034367,
+      "tag": "0001_nebulous_next_avengers",
+      "breakpoints": true
+    }
+  ]
+}

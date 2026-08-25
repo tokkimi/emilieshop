@@ -1,0 +1,8 @@
+import { desc, eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
+import { getChatGPTUser } from '../../chatgpt-auth';
+import { getDb } from '../../../db';
+import { projects, users } from '../../../db/schema';
+export const dynamic = 'force-dynamic';
+export async function GET() { const user = await getChatGPTUser(); if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 }); const rows = await getDb().select().from(projects).where(eq(projects.ownerId, user.userId)).orderBy(desc(projects.updatedAt)); return NextResponse.json({ projects: rows }); }
+export async function POST(request: Request) { const user = await getChatGPTUser(); if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 }); const input = await request.json() as Record<string, unknown>; const now = new Date(); const id = crypto.randomUUID(); const db = getDb(); await db.insert(users).values({ id: user.userId, email: user.email, displayName: user.displayName, createdAt: now }).onConflictDoUpdate({ target: users.id, set: { email: user.email, displayName: user.displayName } }); await db.insert(projects).values({ id, ownerId: user.userId, title: String(input.title || 'Notre Maison').slice(0, 100), address: String(input.address || '').slice(0, 180), years: String(input.years || '').slice(0, 60), collection: String(input.collection || 'Essentiel').slice(0, 30), coverColor: String(input.coverColor || 'forest').slice(0, 20), answersJson: JSON.stringify(input.answers || {}), optionsJson: JSON.stringify(input.options || []), createdAt: now, updatedAt: now }); return NextResponse.json({ id }, { status: 201 }); }
