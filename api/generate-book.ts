@@ -31,17 +31,21 @@ export default async function handler(request: ApiRequest, response: ServerRespo
   const generationId = crypto.randomUUID();
   const mediaList = input.media.map((item) => `${item.id}: ${item.kind} — ${item.name}`).join('\n') || 'Aucun média';
   const answers = Object.entries(input.answers).filter(([, value]) => value.trim()).map(([key, value]) => `${key}: ${value}`).join('\n');
+  const compose = (model: string) => generateText({
+    model,
+    output: Output.object({ name: 'BookComposition', description: 'A refined page-by-page family memory book composition', schema: outputSchema }),
+    system: `You are an expert editorial director for premium family memory books. Compose a warm, restrained, factual narrative using only the supplied memories. Never invent names, dates, addresses or events. Write in ${input.locale === 'en' ? 'English' : 'French'}. Produce 6 to 10 interior pages. Vary layouts. Assign only supplied media IDs. Photos can appear in print. Video and audio belong on an interactive page and are represented in print by a private QR link. Keep prose elegant, natural and concise. Never mention artificial intelligence, automation, a model, or generation.`,
+    prompt: `TITLE: ${input.title}\nSUBTITLE: ${input.subtitle}\nADDRESS: ${input.address}\nCOLLECTION: ${input.collection}\n\nFAMILY ANSWERS:\n${answers || 'No detailed answer yet; keep copy minimal and invite later editing.'}\n\nAVAILABLE MEDIA:\n${mediaList}`,
+  });
   try {
-    const result = await generateText({
-      model: BOOK_MODEL,
-      output: Output.object({ name: 'BookComposition', description: 'A refined page-by-page family memory book composition', schema: outputSchema }),
-      system: `You are an expert editorial director for premium family memory books. Compose a warm, restrained, factual narrative using only the supplied memories. Never invent names, dates, addresses or events. Write in ${input.locale === 'en' ? 'English' : 'French'}. Produce 6 to 10 interior pages. Vary layouts. Assign only supplied media IDs. Photos can appear in print. Video and audio belong on an interactive page and are represented in print by a private QR link. Keep prose elegant, natural and concise. Never mention artificial intelligence, automation, a model, or generation.`,
-      prompt: `TITLE: ${input.title}\nSUBTITLE: ${input.subtitle}\nADDRESS: ${input.address}\nCOLLECTION: ${input.collection}\n\nFAMILY ANSWERS:\n${answers || 'No detailed answer yet; keep copy minimal and invite later editing.'}\n\nAVAILABLE MEDIA:\n${mediaList}`,
-    });
+    let usedModel = BOOK_MODEL;
+    let result;
+    try { result = await compose(usedModel); }
+    catch { usedModel = 'openai/gpt-4.1-nano'; result = await compose(usedModel); }
     const base = fallbackBook(input, generationId);
     const pages: BookPage[] = [base.pages[0], ...result.output.pages.map((page) => ({ ...page, eyebrow: page.eyebrow ?? undefined, quote: page.quote ?? undefined, id: crypto.randomUUID() }))];
     const generated = { ...base, pages };
-    return send(response, 200, { book: generated, generation: { id: generationId, model: BOOK_MODEL, usage: result.totalUsage, finishReason: result.finishReason } });
+    return send(response, 200, { book: generated, generation: { id: generationId, model: usedModel, usage: result.totalUsage, finishReason: result.finishReason } });
   } catch (error) {
     console.error('Book composition failed; returning resilient composition.', error);
     return send(response, 200, { book: fallbackBook(input, generationId), generation: { id: generationId, model: 'resilient-editorial', fallback: true } });
