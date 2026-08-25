@@ -16,7 +16,7 @@ const pageSchema = z.object({
   mediaIds: z.array(z.string()).max(6), layout: z.enum(['editorial', 'full-photo', 'split', 'collage', 'minimal']),
 });
 const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(10) });
-const BOOK_MODEL = process.env.BOOK_MODEL || 'openai/gpt-5.6-luna';
+const BOOK_MODEL = process.env.BOOK_MODEL || 'openai/gpt-4.1-nano';
 
 type ApiRequest = IncomingMessage & { body?: unknown };
 const send = (response: ServerResponse, status: number, value: unknown) => { response.statusCode = status; response.setHeader('content-type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); };

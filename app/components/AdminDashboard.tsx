@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from './SafeLink';
 
 type Project = { client:string; address:string; status:string; progress:number; due:string; product:string };
 const initialProjects:Project[]=[{client:'Sophie & Marc',address:'284, rue des Érables',status:'À relire',progress:72,due:'28 août',product:'Souvenir'},{client:'Amélie Roy',address:'19, avenue du Parc',status:'Aperçu envoyé',progress:90,due:'29 août',product:'Heritage'},{client:'Famille Gagnon',address:'62, chemin du Lac',status:'Photos reçues',progress:48,due:'2 sept.',product:'Famille'},{client:'Julie Tremblay',address:'731, rue Saint-Joseph',status:'En impression',progress:100,due:'4 sept.',product:'Essentiel'}];

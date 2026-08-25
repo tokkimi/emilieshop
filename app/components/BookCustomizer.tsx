@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Link from './SafeLink';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { BOOK_STORAGE_KEY, STUDIO_STORAGE_KEY, type BookGenerationInput, type BookLocale, type BookMedia, type GeneratedBook } from '../../lib/book';
 
@@ -23,7 +22,7 @@ type LocalAsset = BookMedia & { file: File };
 type GenerationResponse = { book: GeneratedBook; generation: { id: string; model: string; usage?: unknown } };
 
 export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
-  const en = locale === 'en'; const t = copy[locale]; const router = useRouter();
+  const en = locale === 'en'; const t = copy[locale];
   const [step, setStep] = useState(1); const [title, setTitle] = useState(t.title); const [address, setAddress] = useState(''); const [years, setYears] = useState('2008 — 2026'); const [color, setColor] = useState('forest'); const [format, setFormat] = useState(t.format[0]); const [answers, setAnswers] = useState<Record<number, string>>({}); const [selectedExtras, setSelectedExtras] = useState<string[]>(['memory']); const [assets, setAssets] = useState<LocalAsset[]>([]); const [draftReady, setDraftReady] = useState(false); const [generating, setGenerating] = useState(false); const [generationStage, setGenerationStage] = useState(0); const [error, setError] = useState('');
   const addOns = extras[locale]; const basePrice = format === t.format[0] ? 149 : format === t.format[1] ? 199 : 249;
   const total = useMemo(() => basePrice + addOns.filter((item) => selectedExtras.includes(item.id)).reduce((sum, item) => sum + item.price, 0), [addOns, basePrice, selectedExtras]);
@@ -54,7 +53,7 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
       const result = (await response.json()) as GenerationResponse; sessionStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(result.book));
       try { localStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(result.book)); } catch { /* session copy remains available */ }
       if (projectId) await fetch('/api/book-generations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: result.generation.id, projectId, locale, model: result.generation.model, usage: result.generation.usage, source, book: result.book }) });
-      setGenerationStage(3); router.push(`${t.preview}?book=${encodeURIComponent(result.book.id)}${projectId ? `&project=${encodeURIComponent(projectId)}` : ''}`);
+      setGenerationStage(3); window.location.assign(`${t.preview}?book=${encodeURIComponent(result.book.id)}${projectId ? `&project=${encodeURIComponent(projectId)}` : ''}`);
     } catch { setError(en ? 'The preview could not be prepared. Your draft is safe; please try again.' : 'L’aperçu n’a pas pu être préparé. Votre brouillon est conservé; réessayez dans un instant.'); }
     finally { window.clearInterval(stageTimer); setGenerating(false); }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from './SafeLink';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { BOOK_STORAGE_KEY, fallbackBook, type BookLocale, type BookPage, type GeneratedBook } from '../../lib/book';
 

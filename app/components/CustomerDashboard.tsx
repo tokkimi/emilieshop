@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from './SafeLink';
 
 export function CustomerDashboard({name,email,locale='fr'}:{name:string;email:string;locale?:'fr'|'en'}){
   const en=locale==='en'; const [tab,setTab]=useState('projects'); const [saved,setSaved]=useState(false); const [draft,setDraft]=useState(''); const [messages,setMessages]=useState<string[]>([]);
