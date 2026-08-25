@@ -1,4 +1,5 @@
 import { generateText, Output } from 'ai';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { z } from 'zod';
 import { fallbackBook, type BookGenerationInput, type BookPage } from '../lib/book';
 
@@ -16,10 +17,15 @@ const pageSchema = z.object({
 });
 const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(10) });
 
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  const parsed = inputSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ error: 'Informations incomplètes' }, { status: 400 });
+type ApiRequest = IncomingMessage & { body?: unknown };
+const send = (response: ServerResponse, status: number, value: unknown) => { response.statusCode = status; response.setHeader('content-type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value)); };
+
+export default async function handler(request: ApiRequest, response: ServerResponse) {
+  if (request.method !== 'POST') return send(response, 405, { error: 'Method not allowed' });
+  let body = request.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = null; } }
+  const parsed = inputSchema.safeParse(body);
+  if (!parsed.success) return send(response, 400, { error: 'Informations incomplètes' });
   const input = parsed.data as BookGenerationInput;
   const generationId = crypto.randomUUID();
   const mediaList = input.media.map((item) => `${item.id}: ${item.kind} — ${item.name}`).join('\n') || 'Aucun média';
@@ -34,9 +40,9 @@ export default async function handler(request: Request) {
     const base = fallbackBook(input, generationId);
     const pages: BookPage[] = [base.pages[0], ...result.output.pages.map((page) => ({ ...page, id: crypto.randomUUID() }))];
     const generated = { ...base, pages };
-    return Response.json({ book: generated, generation: { id: generationId, model: 'openai/gpt-5.6-luna', usage: result.totalUsage, finishReason: result.finishReason } });
+    return send(response, 200, { book: generated, generation: { id: generationId, model: 'openai/gpt-5.6-luna', usage: result.totalUsage, finishReason: result.finishReason } });
   } catch (error) {
     console.error('Book composition failed; returning resilient composition.', error);
-    return Response.json({ book: fallbackBook(input, generationId), generation: { id: generationId, model: 'resilient-editorial', fallback: true } });
+    return send(response, 200, { book: fallbackBook(input, generationId), generation: { id: generationId, model: 'resilient-editorial', fallback: true } });
   }
 }
