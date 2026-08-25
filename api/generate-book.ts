@@ -12,7 +12,7 @@ const inputSchema = z.object({
 });
 const pageSchema = z.object({
   kind: z.enum(['story', 'gallery', 'quote', 'timeline', 'interactive', 'closing']),
-  eyebrow: z.string().max(50).optional(), title: z.string().max(90), body: z.string().max(1200), quote: z.string().max(350).optional(),
+  eyebrow: z.string().max(50).nullable(), title: z.string().max(90), body: z.string().max(1200), quote: z.string().max(350).nullable(),
   mediaIds: z.array(z.string()).max(6), layout: z.enum(['editorial', 'full-photo', 'split', 'collage', 'minimal']),
 });
 const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(10) });
@@ -39,7 +39,7 @@ export default async function handler(request: ApiRequest, response: ServerRespo
       prompt: `TITLE: ${input.title}\nSUBTITLE: ${input.subtitle}\nADDRESS: ${input.address}\nCOLLECTION: ${input.collection}\n\nFAMILY ANSWERS:\n${answers || 'No detailed answer yet; keep copy minimal and invite later editing.'}\n\nAVAILABLE MEDIA:\n${mediaList}`,
     });
     const base = fallbackBook(input, generationId);
-    const pages: BookPage[] = [base.pages[0], ...result.output.pages.map((page) => ({ ...page, id: crypto.randomUUID() }))];
+    const pages: BookPage[] = [base.pages[0], ...result.output.pages.map((page) => ({ ...page, eyebrow: page.eyebrow ?? undefined, quote: page.quote ?? undefined, id: crypto.randomUUID() }))];
     const generated = { ...base, pages };
     return send(response, 200, { book: generated, generation: { id: generationId, model: BOOK_MODEL, usage: result.totalUsage, finishReason: result.finishReason } });
   } catch (error) {
