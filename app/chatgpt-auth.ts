@@ -50,11 +50,17 @@ export async function requireChatGPTUser(
 
 export function chatGPTSignInPath(returnTo: string): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
+  if (process.env.VERCEL) {
+    if (safeReturnTo === '/admin') return '/demo/admin';
+    if (safeReturnTo.startsWith('/en/')) return '/en/demo/profile';
+    return '/demo/profil';
+  }
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
 export function chatGPTSignOutPath(returnTo = '/'): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
+  if (process.env.VERCEL) return safeReturnTo;
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 

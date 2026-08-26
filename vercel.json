@@ -1,27 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "buildCommand": "node -e \"console.log('Vercel routing bridge ready')\"",
-  "outputDirectory": "public",
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api/proxy?upstreamPath="
-    },
-    {
-      "source": "/:path*",
-      "destination": "/api/proxy?upstreamPath=:path*"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/:path*",
-      "headers": [
-        {
-          "key": "x-vercel-enable-rewrite-caching",
-          "value": "0"
-        }
-      ]
-    }
-  ]
+  "framework": "nextjs",
+  "buildCommand": "npx next build"
 }

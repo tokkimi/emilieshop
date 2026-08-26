@@ -19,7 +19,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://memoire-maison-emilie.bimabima700700.chatgpt.site'),
+  metadataBase: new URL('https://emilieshop.vercel.app'),
   manifest: '/manifest.webmanifest',
   title: 'Mémoire Maison — Chaque maison a une histoire',
   description: 'Créez un livre souvenir personnalisé de votre maison, à partir de vos photos, de vos mots et de votre voix.',
