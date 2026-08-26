@@ -4,5 +4,5 @@ import { AdminDashboard } from '../../components/AdminDashboard';
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default function DemoAdminPage() {
-  return <AdminDashboard name="Émilie Cauvier" demo />;
+  return <AdminDashboard name="Emilie Cauvier" demo />;
 }
