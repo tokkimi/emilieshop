@@ -63,12 +63,34 @@ export default async function proxy(request: Request) {
   rewriteOriginHeader(headers, 'origin', incomingUrl.origin);
   rewriteOriginHeader(headers, 'referer', incomingUrl.origin);
 
-  const upstreamResponse = await fetch(upstreamUrl, {
+  let upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
     headers,
     body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
     redirect: 'manual',
   });
+
+  // Some mobile/WAF fingerprints can still produce an intermittent 403 even
+  // with a valid bypass token. Public GET/HEAD requests are safe to retry once
+  // with a minimal server-only header set, completely independent of the
+  // browser's network identity and stored cookies.
+  if (
+    upstreamResponse.status === 403 &&
+    (request.method === 'GET' || request.method === 'HEAD')
+  ) {
+    const retryHeaders = new Headers({
+      accept: headers.get('accept') || 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+      'accept-language': headers.get('accept-language') || 'fr-CA,fr;q=0.9,en;q=0.8',
+      'accept-encoding': 'identity',
+      'user-agent': 'MemoireMaison-Vercel/1.0',
+      'OAI-Sites-Authorization': `Bearer ${bypassToken}`,
+    });
+    upstreamResponse = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: retryHeaders,
+      redirect: 'manual',
+    });
+  }
 
   if (upstreamResponse.status >= 400) {
     console.warn('[memoire-proxy] upstream rejected request', {
