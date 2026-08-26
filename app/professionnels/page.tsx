@@ -1,4 +1,7 @@
+import type { Metadata } from 'next';
 import { SiteFooter, SiteHeader } from '../components/SiteHeader';
+
+export const metadata:Metadata={title:'Cadeau de clôture pour courtiers — Mémoire Maison',description:'Offrez à vos vendeurs un livre souvenir personnalisé de leur maison, créé et livré avec un suivi professionnel.'};
 
 export default function ProfessionalsPage() {
   return <><SiteHeader /><main className="pro-page"><section className="pro-hero"><div><p className="eyebrow">Pour les professionnels de l’immobilier</p><h1>Un cadeau de clôture<br />qui ne ressemble à aucun autre.</h1><p>Offrez à vos vendeurs une expérience profondément personnelle, sans ajouter de travail à votre équipe.</p><div className="hero-actions"><a className="button" href="#packs">Découvrir les offres →</a><a className="quiet-link" href="mailto:pro@memoiremaison.ca">Parler à Émilie</a></div></div><div className="pro-portal-card"><div className="portal-head"><span>Portail professionnel</span><b>12 crédits</b></div><h3>Bonjour, Équipe Beaulieu</h3><p>Vos cadeaux de clôture, simplement.</p><div className="portal-metrics"><span><b>8</b>en création</span><span><b>3</b>à valider</span><span><b>17</b>livrés</span></div><button>＋ Inviter un vendeur</button><ul><li><i>SM</i><span><b>Sophie & Marc</b><small>Questionnaire complété</small></span><mark>72%</mark></li><li><i>AR</i><span><b>Amélie Roy</b><small>Aperçu envoyé</small></span><mark>90%</mark></li></ul></div></section>
