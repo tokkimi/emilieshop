@@ -21,7 +21,7 @@ export default function Home() {
         <p className="eyebrow">Livres souvenirs personnalisés · Québec</p>
         <h1>Chaque maison<br />a une histoire.</h1>
         <p className="hero-lead">Un livre d’exception créé à partir de vos photos, de vos mots et de votre voix — pour emporter avec vous tout ce qu’une adresse ne raconte pas.</p>
-        <div className="hero-actions"><Link className="button" href="/atelier">Commencer mon histoire <span>→</span></Link><a className="quiet-link" href="#comment">Découvrir l’expérience <span>↘</span></a></div>
+        <div className="hero-actions"><Link className="button" href="/atelier">Commencer mon histoire <span>→</span></Link><a className="quiet-link" href="#comment">Découvrir l’expérience <span>→</span></a></div>
         <div className="premium-signature"><span>01</span><p><b>Créé avec soin</b>Votre histoire reste la vôtre, jusqu’au dernier mot.</p></div>
       </div>
       <div className="premium-hero-media"><img src="/memory-book-hero-v2.jpg" alt="Livres souvenirs Mémoire Maison dans un intérieur lumineux" /><div className="image-caption"><span>COLLECTION 2026</span><b>Le beau livre d’une vie à la maison.</b></div></div>
