@@ -23,6 +23,14 @@ const HOP_BY_HOP_REQUEST_HEADERS = [
   'x-vercel-proxy-signature',
   'x-vercel-proxy-signature-ts',
   'forwarded',
+  'via',
+];
+
+const UPSTREAM_PROXY_HEADER_PREFIXES = [
+  'cf-',
+  'x-forwarded-',
+  'x-real-ip',
+  'x-vercel-',
 ];
 
 export default async function proxy(request: Request) {
@@ -39,9 +47,16 @@ export default async function proxy(request: Request) {
   upstreamUrl.search = incomingUrl.searchParams.toString();
 
   const headers = new Headers(request.headers);
-  for (const header of HOP_BY_HOP_REQUEST_HEADERS) {
-    headers.delete(header);
+  for (const [header] of headers) {
+    const normalized = header.toLowerCase();
+    if (
+      HOP_BY_HOP_REQUEST_HEADERS.includes(normalized) ||
+      UPSTREAM_PROXY_HEADER_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+    ) {
+      headers.delete(header);
+    }
   }
+  sanitizeCloudflareCookies(headers);
   headers.set('accept-encoding', 'identity');
   headers.set('OAI-Sites-Authorization', `Bearer ${bypassToken}`);
 
@@ -54,6 +69,17 @@ export default async function proxy(request: Request) {
     body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
     redirect: 'manual',
   });
+
+  if (upstreamResponse.status >= 400) {
+    console.warn('[memoire-proxy] upstream rejected request', {
+      status: upstreamResponse.status,
+      path: upstreamUrl.pathname,
+      cfRay: upstreamResponse.headers.get('cf-ray'),
+      cfMitigated: upstreamResponse.headers.get('cf-mitigated'),
+      contentType: upstreamResponse.headers.get('content-type'),
+      hadIncomingCookie: request.headers.has('cookie'),
+    });
+  }
 
   const responseHeaders = new Headers(upstreamResponse.headers);
   responseHeaders.delete('content-length');
@@ -72,6 +98,7 @@ export default async function proxy(request: Request) {
       ? upstreamResponse.headers.getSetCookie()
       : [];
   for (const cookie of setCookies) {
+    if (isCloudflareCookie(cookie)) continue;
     responseHeaders.append('set-cookie', rewriteSetCookieDomain(cookie));
   }
 
@@ -105,4 +132,23 @@ function rewriteSetCookieDomain(cookie: string): string {
     .split(';')
     .filter((part) => part.trim().toLowerCase().indexOf('domain=') !== 0)
     .join(';');
+}
+
+function sanitizeCloudflareCookies(headers: Headers) {
+  const cookieHeader = headers.get('cookie');
+  if (!cookieHeader) return;
+
+  const safeCookies = cookieHeader
+    .split(';')
+    .map((cookie) => cookie.trim())
+    .filter(Boolean)
+    .filter((cookie) => !isCloudflareCookie(cookie));
+
+  if (safeCookies.length) headers.set('cookie', safeCookies.join('; '));
+  else headers.delete('cookie');
+}
+
+function isCloudflareCookie(cookie: string): boolean {
+  const name = cookie.split('=', 1)[0]?.trim().toLowerCase() || '';
+  return name.startsWith('cf_') || name.startsWith('__cf') || name === '_cfuvid';
 }
