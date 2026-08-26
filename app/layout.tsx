@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   title: 'Mémoire Maison — Chaque maison a une histoire',
   description: 'Créez un livre souvenir personnalisé de votre maison, à partir de vos photos, de vos mots et de votre voix.',
+  icons: {
+    icon: [{ url: '/favicon.png', type: 'image/png', sizes: '64x64' }],
+    apple: [{ url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' }],
+  },
   alternates: { canonical: '/', languages: { 'fr-CA': '/', 'en-CA': '/en' } },
   openGraph: {
     type: 'website',
