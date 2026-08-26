@@ -7,7 +7,7 @@ body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--fo
 a { color:inherit; text-decoration:none; }
 .site-header { height:84px; display:flex; align-items:center; padding:0 5vw; border-bottom:1px solid var(--line); gap:42px; background:rgba(251,250,246,.94); position:relative; z-index:10; }
 .brand { display:flex; align-items:center; gap:12px; font-family:Georgia,serif; font-size:20px; font-weight:700; letter-spacing:-.02em; white-space:nowrap; }
-.brand-mark { width:34px; height:40px; display:grid; place-items:center; color:var(--cream); background:var(--ink); border-radius:17px 17px 4px 4px; font-size:16px; }
+.brand-mark { width:58px; height:42px; display:block; flex:0 0 auto; color:transparent; background:url('/memoire-maison-monogram.png') center/contain no-repeat; border-radius:0; font-size:0; overflow:hidden; }
 .main-nav { display:flex; align-items:center; gap:32px; margin:auto; font-size:13px; }
 .main-nav a,.text-link { border-bottom:1px solid transparent; padding:8px 0; }
 .main-nav a:hover,.text-link:hover { border-color:var(--ink); }
@@ -57,7 +57,7 @@ h1 { margin:0; font:400 clamp(58px,7vw,104px)/.9 Georgia,serif; letter-spacing:-
 .trust-strip span { color:var(--gold); font:12px var(--font-geist-sans); margin-right:18px; }
 @media(max-width:1160px){.theme-selector-label{display:none}.home-theme-selector{padding-right:12px}.header-actions{gap:16px}}
 @media(max-width:900px){ .main-nav{display:none}.site-header{padding:0 20px}.header-actions .text-link{display:none}.hero{grid-template-columns:1fr}.hero-copy{padding:70px 24px 120px}.hero-visual{min-height:570px}.hero-note{left:24px;right:auto}.book-front{left:30%}.trust-strip{grid-template-columns:1fr;gap:16px}.trust-strip p{border:0;padding:0}.brand{margin-right:auto} }
-@media(max-width:520px){ .site-header{gap:10px}.header-actions{gap:10px}.brand{font-size:16px}.brand-mark{width:30px;height:34px}.home-theme-selector{padding-right:9px}.theme-choice{width:15px;height:15px}.button-small{font-size:10px;padding:0 10px}.hero{min-height:auto}.hero-visual{min-height:500px}.book-front{width:230px;height:340px;left:27%}.book-photo{height:230px}.book-back{width:200px;height:310px}.memory-card{right:-14px;top:7%}.trust-strip{padding:24px} }
+@media(max-width:520px){ .site-header{gap:10px}.header-actions{gap:10px}.brand{font-size:16px}.brand-mark{width:48px;height:34px}.home-theme-selector{padding-right:9px}.theme-choice{width:15px;height:15px}.button-small{font-size:10px;padding:0 10px}.hero{min-height:auto}.hero-visual{min-height:500px}.book-front{width:230px;height:340px;left:27%}.book-photo{height:230px}.book-back{width:200px;height:310px}.memory-card{right:-14px;top:7%}.trust-strip{padding:24px} }
 @media(max-width:430px){.brand>span:last-child{display:none}.locale-link{display:none}}
 
 /* Home art directions — deliberately scoped to the home page by the client selector. */
