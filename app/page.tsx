@@ -42,7 +42,7 @@ export default function Home() {
     </section>
 
     <section className="premium-memory-link">
-      <div className="memory-photo-wrap"><img src="/memory-link-v2.jpg" alt="Livre photo ouvert et Memory Link privé sur téléphone" /><Link href="/memory/demo" aria-label="Explorer le Memory Link"><span>▶</span> Voir la démonstration</Link></div>
+      <div className="memory-photo-wrap"><img src="/memory-link-v2.jpg" alt="Livre photo ouvert et Memory Link privé sur téléphone" /><Link href="/memory/demo" aria-label="Explorer le Memory Link"><span>→</span> Voir la démonstration</Link></div>
       <div className="memory-link-copy"><p className="eyebrow">Nouveau · Memory Link</p><h2>Le livre se referme.<br /><em>Les souvenirs continuent.</em></h2><p>Un QR code discret ouvre une archive privée de votre famille : photos, mini-film, récit et voix de ceux qui racontent.</p><ul><li><span>✓</span> Une page privée à transmettre aux proches</li><li><span>✓</span> Un lien qui évolue sans réimprimer le QR</li><li><span>✓</span> Carte premium ou porte-clé QR/NFC</li></ul><Link className="quiet-link" href="/memory/demo">Explorer un Memory Link →</Link></div>
     </section>
 
