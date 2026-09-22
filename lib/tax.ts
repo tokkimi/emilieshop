@@ -1,0 +1,5 @@
+export type TaxEstimate = { taxCents: number | null; rateBps: number | null; label: string; isFinal: boolean };
+const CANADIAN_STANDARD_RATES_BPS: Record<string, { rate: number; label: string }> = {
+  AB:{rate:500,label:'TPS 5 %'},BC:{rate:1200,label:'TPS + TVP 12 %'},MB:{rate:1200,label:'TPS + TVP 12 %'},NB:{rate:1500,label:'TVH 15 %'},NL:{rate:1500,label:'TVH 15 %'},NT:{rate:500,label:'TPS 5 %'},NS:{rate:1400,label:'TVH 14 %'},NU:{rate:500,label:'TPS 5 %'},ON:{rate:1300,label:'TVH 13 %'},PE:{rate:1500,label:'TVH 15 %'},QC:{rate:1497.5,label:'TPS 5 % + TVQ 9,975 %'},SK:{rate:1100,label:'TPS + TVP 11 %'},YT:{rate:500,label:'TPS 5 %'},
+};
+export function estimateTax(subtotalCents:number,countryCode:string,regionCode=''):TaxEstimate{const country=countryCode.trim().toUpperCase();const entry=country==='CA'?CANADIAN_STANDARD_RATES_BPS[regionCode.trim().toUpperCase()]:undefined;if(entry)return{taxCents:Math.round(subtotalCents*entry.rate/10000),rateBps:entry.rate,label:entry.label,isFinal:false};return{taxCents:null,rateBps:null,label:country==='US'?'Taxes calculées selon l’État au paiement':'Taxes et droits calculés selon l’adresse au paiement',isFinal:false};}

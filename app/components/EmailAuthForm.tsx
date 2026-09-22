@@ -10,6 +10,7 @@ function safeNext(value: string | null, fallback: string) {
 
 export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?: 'fr' | 'en'; fallback?: string }) {
   const en = locale === 'en';
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'unavailable'>('idle');
 
@@ -29,8 +30,10 @@ export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?
     });
     setStatus(error ? 'error' : 'sent');
   }
+  async function googleSignIn(){const supabase=createSupabaseBrowserClient();if(!supabase){setStatus('unavailable');return}setStatus('sending');const next=safeNext(new URL(window.location.href).searchParams.get('next'),fallback);const redirectTo=`${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo}});if(error)setStatus('error')}
 
   return <form className="email-auth-form" onSubmit={submit}>
+    {googleEnabled ? <><button className="google-auth-button" type="button" onClick={googleSignIn} disabled={status==='sending'}><span>G</span>{en?'Continue with Google':'Continuer avec Google'}</button><div className="auth-or"><span>{en?'or':'ou'}</span></div></> : null}
     <label htmlFor={`account-email-${locale}`}>{en ? 'Email address' : 'Adresse courriel'}</label>
     <div><input id={`account-email-${locale}`} type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={en ? 'you@example.com' : 'vous@exemple.ca'} /><button className="button" type="submit" disabled={status === 'sending' || status === 'sent'}>{status === 'sending' ? (en ? 'Sending…' : 'Envoi…') : status === 'sent' ? (en ? 'Link sent ✓' : 'Lien envoyé ✓') : (en ? 'Continue securely →' : 'Continuer en sécurité →')}</button></div>
     {status === 'sent' ? <p className="auth-feedback success" role="status">{en ? 'Check your inbox. The secure link signs you in or creates your account.' : 'Consultez votre boîte courriel. Le lien sécurisé vous connecte ou crée votre compte.'}</p> : null}

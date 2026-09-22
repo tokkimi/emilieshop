@@ -9,9 +9,9 @@ const steps = [
 ];
 
 const books = [
-  ['Essentiel', 'Le livre qui rassemble.', '24 à 40 pages, couverture rigide et aperçu numérique.', '149 $'],
-  ['Souvenir', 'Une finition plus précieuse.', 'Papier premium, détails personnalisés et copie famille.', '199 $'],
-  ['Famille', 'À transmettre entre générations.', 'Plusieurs exemplaires, coffret et archive numérique.', '249 $'],
+  ['Essentiel', 'Le livre qui rassemble.', '24 pages, couverture rigide et aperçu numérique.', '149 $'],
+  ['Souvenir', 'Une finition plus précieuse.', '24 pages, un livre rigide et Memory Link pendant 1 an.', '229 $'],
+  ['Famille', 'À transmettre entre générations.', '24 pages, 2 exemplaires et Memory Link pendant 3 ans.', '329 $'],
 ];
 
 export default function Home() {
