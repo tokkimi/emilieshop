@@ -47,7 +47,7 @@ const pageSchema = z.object({
   layout: z.enum(['editorial', 'full-photo', 'split', 'collage', 'minimal']),
 });
 
-const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(10) });
+const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(12) });
 const defaultModel = process.env.BOOK_MODEL || 'openai/gpt-4.1-nano';
 
 export async function POST(request: Request) {
@@ -98,16 +98,14 @@ export async function POST(request: Request) {
     });
 
     const base = fallbackBook(input, generationId);
-    const pages: BookPage[] = [
-      base.pages[0],
-      ...result.output.pages.map((page) => ({
+    const composedPages: BookPage[] = result.output.pages.map((page) => ({
         ...page,
         eyebrow: page.eyebrow ?? undefined,
         quote: page.quote ?? undefined,
         mediaIds: page.mediaIds.filter((id) => suppliedMediaIds.has(id)),
         id: crypto.randomUUID(),
-      })),
-    ];
+      }));
+    const pages: BookPage[] = [base.pages[0], ...composedPages, ...base.pages.slice(1 + composedPages.length)].slice(0, 25);
 
     return NextResponse.json({
       book: { ...base, pages },
