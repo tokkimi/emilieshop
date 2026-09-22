@@ -18,9 +18,10 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### Activation restante pour ces ajouts
 
-- [ ] Créer ou choisir le projet Supabase de production et appliquer la migration.
-- [ ] Créer le bucket privé `project-media`.
-- [ ] Ajouter `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_SECRET_KEY` à Vercel.
+- [x] Créer le projet Supabase de production `emilieshop` au Canada et appliquer la migration.
+- [x] Créer le bucket privé `project-media` avec limite de 50 Mo et types de fichiers autorisés.
+- [x] Ajouter `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` à Vercel pour Production, Preview et Development.
+- [ ] Ajouter `SUPABASE_SECRET_KEY` à Vercel après authentification au tableau de bord Supabase.
 - [ ] Autoriser les redirections `https://emilieshop.vercel.app/auth/callback` dans Supabase Auth.
 - [ ] Configurer le SMTP personnalisé pour les liens de connexion et tester une vraie boîte courriel.
 - [ ] Attribuer le rôle propriétaire au compte d’Emilie et tester l’isolation de deux comptes distincts.
@@ -61,11 +62,12 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 1. Identité commerciale et légale
 
-- [ ] Confirmer le nom légal exact de l’entreprise.
+- [x] Confirmer le nom légal : Emilie Cauvier Inc.
+- [x] Confirmer le territoire principal : Montréal–Laval, Québec, Canada.
 - [ ] Fournir l’adresse commerciale à afficher sur les contrats, factures et courriels.
 - [ ] Fournir le téléphone de service à la clientèle.
 - [ ] Confirmer les numéros d’entreprise, TPS et TVQ lorsqu’applicables.
-- [ ] Confirmer le nom et le courriel du responsable de la protection des renseignements personnels.
+- [x] Utiliser provisoirement Emilie Cauvier et `emilie@equipecauvier.com` comme contact public et responsable de la protection des renseignements personnels.
 - [ ] Faire relire les CGV, la confidentialité, les consentements et les règles de remboursement par un juriste québécois.
 - [ ] Fixer la durée de conservation des projets, médias, enregistrements vocaux et Memory Links.
 - [ ] Définir la procédure de demande d’accès, correction, export et suppression des données.
