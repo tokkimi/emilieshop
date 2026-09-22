@@ -8,5 +8,5 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function AdminPage() {
   const user = await requireChatGPTUser('/admin');
   if (!isAdminUser(user)) redirect('/connexion?admin=refuse');
-  return <AdminDashboard name={user.fullName || 'Émilie Cauvier'} />;
+  return <AdminDashboard name={user.fullName || 'Emilie Cauvier'} />;
 }
