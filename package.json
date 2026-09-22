@@ -9,13 +9,14 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "lint": "eslint app api db lib --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern work",
+    "lint": "eslint app db lib --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern work",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "ai": "^7.0.79",
     "drizzle-orm": "0.45.2",
-    "next": "16.2.6",
+    "next": "^16.3.5",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "zod": "^4.4.3"

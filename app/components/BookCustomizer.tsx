@@ -2,7 +2,8 @@
 
 import Link from './SafeLink';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { BOOK_STORAGE_KEY, STUDIO_STORAGE_KEY, type BookGenerationInput, type BookLocale, type BookMedia, type GeneratedBook } from '../../lib/book';
+import { BOOK_STORAGE_KEY, STUDIO_STORAGE_KEY, bookForStorage, type BookGenerationInput, type BookLocale, type BookMedia, type GeneratedBook } from '../../lib/book';
+import { removeLocalMedia, saveLocalMedia } from '../../lib/client-media';
 
 const copy = {
   fr: {
@@ -32,8 +33,22 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
 
   const toggleExtra = (id: string) => setSelectedExtras((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const go = (value: number) => { setStep(Math.max(1, Math.min(4, value))); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const addFiles = (event: ChangeEvent<HTMLInputElement>) => { const files = Array.from(event.target.files || []).slice(0, Math.max(0, 40 - assets.length)); const next = files.map((file) => ({ id: crypto.randomUUID(), name: file.name, kind: file.type.startsWith('video/') ? 'video' as const : file.type.startsWith('audio/') ? 'audio' as const : 'photo' as const, previewUrl: URL.createObjectURL(file), file })); setAssets((current) => [...current, ...next]); event.target.value = ''; };
-  const removeAsset = (id: string) => setAssets((current) => { const removed = current.find((item) => item.id === id); if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl); return current.filter((item) => item.id !== id); });
+  const addFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []).slice(0, Math.max(0, 40 - assets.length));
+    const next = files.map((file) => {
+      const id = crypto.randomUUID();
+      void saveLocalMedia(id, file);
+      return { id, name: file.name, kind: file.type.startsWith('video/') ? 'video' as const : file.type.startsWith('audio/') ? 'audio' as const : 'photo' as const, previewUrl: URL.createObjectURL(file), storageKey: id, file };
+    });
+    setAssets((current) => [...current, ...next]);
+    event.target.value = '';
+  };
+  const removeAsset = (id: string) => setAssets((current) => {
+    const removed = current.find((item) => item.id === id);
+    if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+    void removeLocalMedia(id);
+    return current.filter((item) => item.id !== id);
+  });
 
   const createPreview = async () => {
     if (generating) return; setGenerating(true); setError(''); setGenerationStage(0);
@@ -42,16 +57,18 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
     try {
       const projectResponse = await fetch('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, address, years, collection: format, coverColor: color, answers, options: selectedExtras }) });
       if (projectResponse.ok) projectId = ((await projectResponse.json()) as { id: string }).id;
-      let media: BookMedia[] = assets.map(({ id, name, kind, previewUrl }) => ({ id, name, kind, previewUrl }));
+      let media: BookMedia[] = assets.map(({ id, name, kind, storageKey }) => ({ id, name, kind, storageKey }));
       if (projectId) {
-        const uploaded = await Promise.all(assets.map(async (asset) => { const form = new FormData(); form.set('projectId', projectId!); form.set('file', asset.file); const response = await fetch('/api/uploads', { method: 'POST', body: form }); if (!response.ok) return { id: asset.id, name: asset.name, kind: asset.kind, previewUrl: asset.previewUrl }; const result = (await response.json()) as { id: string }; return { id: result.id, name: asset.name, kind: asset.kind, previewUrl: `/api/media/${result.id}` }; }));
+        const uploaded = await Promise.all(assets.map(async (asset) => { const form = new FormData(); form.set('projectId', projectId!); form.set('file', asset.file); const response = await fetch('/api/uploads', { method: 'POST', body: form }); if (!response.ok) return { id: asset.id, name: asset.name, kind: asset.kind, storageKey: asset.storageKey }; const result = (await response.json()) as { id: string }; return { id: result.id, name: asset.name, kind: asset.kind, previewUrl: `/api/media/${result.id}`, storageKey: asset.storageKey }; }));
         media = uploaded;
       }
       const source: BookGenerationInput = { projectId, locale, title: title.trim() || t.title, subtitle: years.trim(), address: address.trim(), collection: format, coverColor: color, answers: Object.fromEntries(Object.entries(answers).map(([key, value]) => [t.questions[Number(key)] || key, value])), media };
       const response = await fetch('/api/generate-book', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(source) });
       if (!response.ok) throw new Error('generation');
-      const result = (await response.json()) as GenerationResponse; sessionStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(result.book));
-      try { localStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(result.book)); } catch { /* session copy remains available */ }
+      const result = (await response.json()) as GenerationResponse;
+      const persistentBook = bookForStorage(result.book);
+      sessionStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(persistentBook));
+      try { localStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(persistentBook)); } catch { /* session copy remains available */ }
       if (projectId) await fetch('/api/book-generations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: result.generation.id, projectId, locale, model: result.generation.model, usage: result.generation.usage, source, book: result.book }) });
       setGenerationStage(3); window.location.assign(`${t.preview}?book=${encodeURIComponent(result.book.id)}${projectId ? `&project=${encodeURIComponent(projectId)}` : ''}`);
     } catch { setError(en ? 'The preview could not be prepared. Your draft is safe; please try again.' : 'L’aperçu n’a pas pu être préparé. Votre brouillon est conservé; réessayez dans un instant.'); }

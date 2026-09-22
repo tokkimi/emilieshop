@@ -25,6 +25,7 @@ const inputSchema = z.object({
         name: z.string().max(180),
         kind: z.enum(['photo', 'video', 'audio']),
         previewUrl: z.string().optional(),
+        storageKey: z.string().optional(),
       }),
     )
     .max(40),

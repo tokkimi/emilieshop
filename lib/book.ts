@@ -5,6 +5,7 @@ export type BookMedia = {
   name: string;
   kind: 'photo' | 'video' | 'audio';
   previewUrl?: string;
+  storageKey?: string;
 };
 export type BookPage = {
   id: string;
@@ -47,6 +48,16 @@ export type BookGenerationInput = {
 
 export const BOOK_STORAGE_KEY = 'memoire-maison-current-book';
 export const STUDIO_STORAGE_KEY = 'memoire-maison-studio-draft';
+
+export function bookForStorage(book: GeneratedBook): GeneratedBook {
+  return {
+    ...book,
+    media: book.media.map((item) => ({
+      ...item,
+      previewUrl: item.previewUrl?.startsWith('blob:') ? undefined : item.previewUrl,
+    })),
+  };
+}
 
 export function fallbackBook(input: BookGenerationInput, id = crypto.randomUUID()): GeneratedBook {
   const en = input.locale === 'en';
