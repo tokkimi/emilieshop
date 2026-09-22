@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from './SafeLink';
 import { SiteHeader } from './SiteHeader';
 import { loadLocalMedia } from '../../lib/client-media';
-import { BOOK_STORAGE_KEY, fallbackBook, type BookLocale, type GeneratedBook } from '../../lib/book';
+import { BOOK_STORAGE_KEY, ensureCompleteBook, fallbackBook, type BookLocale, type GeneratedBook } from '../../lib/book';
 
 async function restoreMedia(book: GeneratedBook) {
   const media = await Promise.all(book.media.map(async (item) => {
@@ -29,7 +29,7 @@ export function MemoryLinkExperience({ locale = 'fr' }: { locale?: BookLocale })
       try {
         const stored = sessionStorage.getItem(BOOK_STORAGE_KEY) || localStorage.getItem(BOOK_STORAGE_KEY);
         if (stored) {
-          const next = await restoreMedia(JSON.parse(stored) as GeneratedBook);
+          const next = await restoreMedia(ensureCompleteBook(JSON.parse(stored) as GeneratedBook));
           if (!cancelled) setBook(next);
         }
       } finally {

@@ -59,6 +59,22 @@ export function bookForStorage(book: GeneratedBook): GeneratedBook {
   };
 }
 
+export function ensureCompleteBook(book: GeneratedBook): GeneratedBook {
+  if (book.pages.length >= 25) return book;
+  const completion = fallbackBook({
+    projectId: book.projectId,
+    locale: book.locale,
+    title: book.title,
+    subtitle: book.subtitle,
+    address: book.address,
+    collection: book.collection,
+    coverColor: book.coverColor,
+    answers: {},
+    media: [],
+  }, `${book.id}-completion`);
+  return { ...book, pages: [...book.pages, ...completion.pages.slice(1)].slice(0, 25) };
+}
+
 export function fallbackBook(input: BookGenerationInput, id = crypto.randomUUID()): GeneratedBook {
   const en = input.locale === 'en';
   const memories = Object.values(input.answers).map((answer) => answer.trim()).filter(Boolean);

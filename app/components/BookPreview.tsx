@@ -7,6 +7,7 @@ import { loadLocalMedia, saveLocalMedia } from '../../lib/client-media';
 import {
   BOOK_STORAGE_KEY,
   bookForStorage,
+  ensureCompleteBook,
   fallbackBook,
   type BookLocale,
   type BookMedia,
@@ -57,7 +58,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
       try {
         const stored = sessionStorage.getItem(BOOK_STORAGE_KEY) || localStorage.getItem(BOOK_STORAGE_KEY);
         if (stored) {
-          const restored = await hydrateMedia(JSON.parse(stored) as GeneratedBook);
+          const restored = await hydrateMedia(ensureCompleteBook(JSON.parse(stored) as GeneratedBook));
           if (!cancelled) setBook(restored);
           return;
         }
@@ -67,7 +68,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
       const response = await fetch(`/api/book-generations?projectId=${encodeURIComponent(projectId)}`);
       if (response.ok) {
         const result = (await response.json()) as { generation: { result: GeneratedBook } };
-        const restored = await hydrateMedia(result.generation.result);
+        const restored = await hydrateMedia(ensureCompleteBook(result.generation.result));
         if (!cancelled) setBook(restored);
       }
     };
