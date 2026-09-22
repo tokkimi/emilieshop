@@ -15,7 +15,7 @@ async function restoreMedia(book: GeneratedBook) {
 }
 
 function sampleBook(locale: BookLocale) {
-  return fallbackBook({ locale, title: locale === 'en' ? 'The Maple House' : 'La maison des Érables', subtitle: '2008 — 2026', address: 'Québec', collection: locale === 'en' ? 'Keepsake' : 'Souvenir', coverColor: 'forest', answers: {}, media: [] });
+  return fallbackBook({ locale, title: locale === 'en' ? 'The Maple House' : 'La maison des Érables', subtitle: '2008 — 2026', address: 'Québec', collection: locale === 'en' ? 'Keepsake' : 'Souvenir', coverColor: 'forest', answers: {}, media: [] }, `memory-${locale}`);
 }
 
 export function MemoryLinkExperience({ locale = 'fr' }: { locale?: BookLocale }) {

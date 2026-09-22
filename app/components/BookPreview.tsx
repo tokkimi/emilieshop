@@ -15,7 +15,7 @@ import {
 } from '../../lib/book';
 
 function initialBook(locale: BookLocale) {
-  return fallbackBook({ locale, title: locale === 'en' ? 'Our Home' : 'Notre Maison', subtitle: '2008 — 2026', address: '', collection: locale === 'en' ? 'Essential' : 'Essentiel', coverColor: 'forest', answers: {}, media: [] });
+  return fallbackBook({ locale, title: locale === 'en' ? 'Our Home' : 'Notre Maison', subtitle: '2008 — 2026', address: '', collection: locale === 'en' ? 'Essential' : 'Essentiel', coverColor: 'forest', answers: {}, media: [] }, `preview-${locale}`);
 }
 
 async function hydrateMedia(book: GeneratedBook) {
