@@ -1,5 +1,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { hasSupabasePublicConfig } from '../lib/supabase/config';
+import { createSupabaseServerClient } from '../lib/supabase/server';
 
 export type ChatGPTUser = {
   userId: string;
@@ -19,6 +21,25 @@ const SIGN_OUT_PATH = '/signout-with-chatgpt';
 const CALLBACK_PATH = '/callback';
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  if (hasSupabasePublicConfig()) {
+    const supabase = await createSupabaseServerClient();
+    const { data } = supabase
+      ? await supabase.auth.getUser()
+      : { data: { user: null } };
+    if (data.user?.email) {
+      const fullName =
+        typeof data.user.user_metadata?.full_name === 'string'
+          ? data.user.user_metadata.full_name
+          : null;
+      return {
+        userId: data.user.id,
+        email: data.user.email,
+        fullName,
+        displayName: fullName || data.user.email.split('@')[0],
+      };
+    }
+  }
+
   const requestHeaders = await headers();
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
@@ -50,6 +71,10 @@ export async function requireChatGPTUser(
 
 export function chatGPTSignInPath(returnTo: string): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
+  if (hasSupabasePublicConfig()) {
+    const languagePath = safeReturnTo.startsWith('/en/') ? '/en/sign-in' : '/connexion';
+    return `${languagePath}?next=${encodeURIComponent(safeReturnTo)}`;
+  }
   if (process.env.VERCEL) {
     if (safeReturnTo === '/admin') return '/demo/admin';
     if (safeReturnTo.startsWith('/en/')) return '/en/demo/profile';
@@ -60,6 +85,9 @@ export function chatGPTSignInPath(returnTo: string): string {
 
 export function chatGPTSignOutPath(returnTo = '/'): string {
   const safeReturnTo = safeRelativeReturnPath(returnTo);
+  if (hasSupabasePublicConfig()) {
+    return `/auth/sign-out?next=${encodeURIComponent(safeReturnTo)}`;
+  }
   if (process.env.VERCEL) return safeReturnTo;
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }

@@ -33,6 +33,8 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [compact, setCompact] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
   const [panel, setPanel] = useState<'edit' | 'media' | null>(null);
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const [origin, setOrigin] = useState('https://emilieshop.vercel.app');
@@ -118,10 +120,24 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
 
   const toggleMedia = (id: string) => updatePage({ mediaIds: selectedPage.mediaIds.includes(id) ? selectedPage.mediaIds.filter((item) => item !== id) : [...selectedPage.mediaIds, id].slice(0, 8) });
   const approve = async () => {
-    const versionHash = `${book.id}-v${book.version}-${book.updatedAt}`;
-    if (book.projectId) await fetch('/api/approvals', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ projectId: book.projectId, versionHash }) });
-    setBook((value) => ({ ...value, status: 'approved' }));
-    setApproved(true);
+    if (approving || approved) return;
+    setApproving(true);
+    setApprovalError('');
+    try {
+      const payload = JSON.stringify(bookForStorage(book));
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
+      const versionHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      if (book.projectId) {
+        const response = await fetch('/api/approvals', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ projectId: book.projectId, versionHash }) });
+        if (!response.ok) throw new Error('approval');
+      }
+      setBook((value) => ({ ...value, status: 'approved' }));
+      setApproved(true);
+    } catch {
+      setApprovalError(en ? 'Approval could not be secured. Nothing was sent to print; please try again.' : 'La validation n’a pas pu être sécurisée. Rien n’a été envoyé à l’impression; réessayez.');
+    } finally {
+      setApproving(false);
+    }
   };
   const previous = () => setActivePage((page) => Math.max(0, page - (compact ? 1 : 2)));
   const next = () => setActivePage((page) => Math.min(book.pages.length - 1, page + (compact ? 1 : 2)));
@@ -137,7 +153,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
       {panel && selectedPage && <aside className="page-editor"><header><div><small>{en ? 'Selected page' : 'Page sélectionnée'} {activePage + 1}</small><b>{selectedPage.title}</b></div><button type="button" onClick={() => setPanel(null)} aria-label={en ? 'Close' : 'Fermer'}>×</button></header>{panel === 'edit' ? <><label>{en ? 'Small heading' : 'Petit titre'}<input value={selectedPage.eyebrow || ''} onChange={(event) => updatePage({ eyebrow: event.target.value })} /></label><label>{en ? 'Page title' : 'Titre de la page'}<input value={selectedPage.title} onChange={(event) => updatePage({ title: event.target.value })} /></label><label>{en ? 'Story' : 'Récit'}<textarea value={selectedPage.body} onChange={(event) => updatePage({ body: event.target.value })} /></label><label>{en ? 'Quote (optional)' : 'Citation (facultative)'}<textarea value={selectedPage.quote || ''} onChange={(event) => updatePage({ quote: event.target.value })} /></label><fieldset><legend>{en ? 'Layout' : 'Mise en page'}</legend><div className="layout-choices">{(['editorial', 'full-photo', 'split', 'collage', 'minimal'] as const).map((layout) => <button type="button" key={layout} className={selectedPage.layout === layout ? 'active' : ''} onClick={() => updatePage({ layout })}>{layout === 'editorial' ? (en ? 'Editorial' : 'Éditoriale') : layout === 'full-photo' ? (en ? 'Full image' : 'Grande image') : layout === 'split' ? (en ? 'Split' : 'Partagée') : layout === 'collage' ? 'Collage' : (en ? 'Minimal' : 'Épurée')}</button>)}</div></fieldset><div className="page-order"><button type="button" onClick={() => movePage(-1)} disabled={activePage <= 1}>← {en ? 'Move before' : 'Déplacer avant'}</button><button type="button" onClick={() => movePage(1)} disabled={activePage >= book.pages.length - 1}>{en ? 'Move after' : 'Déplacer après'} →</button></div></> : <><label className="editor-upload"><input type="file" accept="image/*,video/*,audio/*" multiple onChange={addMedia} />＋ {en ? 'Add photos, films or voices' : 'Ajouter photos, films ou voix'}</label><p className="editor-media-note">{en ? 'Photos appear in print. Films and voices play in the private Memory Link.' : 'Les photos apparaissent dans le livre. Les films et les voix se lisent dans le Memory Link privé.'}</p><div className="editor-media-grid">{book.media.map((item) => <MediaTile key={item.id} item={item} selected={selectedPage.mediaIds.includes(item.id)} onToggle={() => toggleMedia(item.id)} en={en} />)}</div>{!book.media.length && <p>{en ? 'Add your first memory to this page.' : 'Ajoutez votre premier souvenir à cette page.'}</p>}</>}</aside>}
     </section>
 
-    <footer className="approval-bar"><label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span><b>{en ? 'I reviewed every page and approve this exact version for printing.' : 'J’ai relu toutes les pages et j’approuve cette version exacte pour impression.'}</b><small>{en ? `Version ${book.version} · Changes stay available until approval.` : `Version ${book.version} · Les modifications restent possibles jusqu’à la validation.`}</small></span></label><button type="button" className="button" disabled={!confirmed || approved} onClick={approve}>{approved ? (en ? 'Approved ✓' : 'Aperçu approuvé ✓') : (en ? 'Approve for printing →' : 'Valider pour impression →')}</button></footer>
+    <footer className="approval-bar"><label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span><b>{en ? 'I reviewed every page and approve this exact version for printing.' : 'J’ai relu toutes les pages et j’approuve cette version exacte pour impression.'}</b><small>{en ? `Version ${book.version} · Changes stay available until approval.` : `Version ${book.version} · Les modifications restent possibles jusqu’à la validation.`}</small>{approvalError ? <small className="approval-error" role="alert">{approvalError}</small> : null}</span></label><button type="button" className="button" disabled={!confirmed || approved || approving} onClick={approve}>{approving ? (en ? 'Securing…' : 'Sécurisation…') : approved ? (en ? 'Approved ✓' : 'Aperçu approuvé ✓') : (en ? 'Approve for printing →' : 'Valider pour impression →')}</button></footer>
 
     <section className="print-book" aria-hidden="true">{book.pages.map((page, index) => <article className={`print-page book-page page-${page.kind} layout-${page.layout} color-${book.coverColor}`} key={page.id}><PageContent page={page} book={book} en={en} memoryUrl={memoryUrl} /><span className="print-proof-note">{index === 0 ? (en ? 'DIGITAL PROOF · COVER' : 'APERÇU NUMÉRIQUE · COUVERTURE') : `${en ? 'INTERIOR' : 'INTÉRIEUR'} · ${index}/24`}</span></article>)}</section>
     {approved && <div className="approval-success"><span>✓</span><h2>{en ? 'Preview approved.' : 'Aperçu approuvé.'}</h2><p>{en ? 'This exact version was timestamped. You can now follow production from your account.' : 'Cette version exacte a été horodatée. Vous pouvez maintenant suivre la production depuis votre compte.'}</p><Link className="button" href={profile}>{en ? 'Track my order →' : 'Suivre ma commande →'}</Link></div>}

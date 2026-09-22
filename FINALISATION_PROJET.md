@@ -1,6 +1,29 @@
 # Mémoire Maison — plan de finalisation
 
-Mise à jour : 26 août 2026. Cette liste distingue ce qui existe vraiment, ce qui est démontrable et ce qui exige encore un fournisseur, un compte externe ou une décision d’Émilie.
+Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, ce qui est codé mais attend des clés, et ce qui exige encore un fournisseur, un compte externe ou une décision d’Émilie.
+
+## Ajouts déjà réalisés sans Stripe
+
+- [x] Architecture Supabase actuelle prête pour Vercel : authentification par lien courriel, sessions SSR par cookies, base Postgres et stockage privé.
+- [x] Migration complète versionnée pour profils, projets, médias, livres, validations, commandes, professionnels, invitations, Memory Links, messagerie, newsletter, analytics, paramètres, audit et demandes de données.
+- [x] RLS activée sur toutes les tables exposées, politiques par propriétaire et droits Data API explicitement limités.
+- [x] Politiques Storage privées avec contrôle du propriétaire et arborescence par utilisateur.
+- [x] Adaptateurs Supabase ajoutés aux projets, médias, compositions, validations, messages, newsletter et analytics.
+- [x] Connexion/création de compte bilingue sans mot de passe prête à activer.
+- [x] Profil réel séparé de la démonstration : aucun faux projet ou faux achat dans un vrai compte.
+- [x] Export complet des données du client et demande de suppression avec validation humaine.
+- [x] Empreinte SHA-256 de la version approuvée et refus d’afficher « approuvé » si le serveur échoue.
+- [x] Centre de lancement dans l’administration avec état réel des intégrations et verrous.
+- [x] Dépendances Supabase épinglées, compilation validée et audit de production à 0 vulnérabilité.
+
+### Activation restante pour ces ajouts
+
+- [ ] Créer ou choisir le projet Supabase de production et appliquer la migration.
+- [ ] Créer le bucket privé `project-media`.
+- [ ] Ajouter `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_SECRET_KEY` à Vercel.
+- [ ] Autoriser les redirections `https://emilieshop.vercel.app/auth/callback` dans Supabase Auth.
+- [ ] Configurer le SMTP personnalisé pour les liens de connexion et tester une vraie boîte courriel.
+- [ ] Attribuer le rôle propriétaire au compte d’Emilie et tester l’isolation de deux comptes distincts.
 
 ## État actuel
 
