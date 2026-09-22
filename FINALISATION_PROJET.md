@@ -2,6 +2,15 @@
 
 Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, ce qui est codé mais attend des clés, et ce qui exige encore un fournisseur, un compte externe ou une décision d’Émilie.
 
+## État vérifié avant le déploiement
+
+- Supabase de production est relié, ses migrations sont appliquées et les trois environnements Vercel ont la clé serveur. Le contrôle de sécurité Supabase ne signale aucune alerte.
+- La connexion par courriel, les projets privés, la prévisualisation et l'approbation versionnée, les profils réels, les commandes en attente de paiement et les données réelles de l'administration sont codés. La connexion Google n'est pas activée sans configuration OAuth.
+- Les trois formules produisent actuellement un intérieur de 24 pages. Famille comprend deux exemplaires. Les tarifs affichés sont 149/229/329 CAD, avant livraison et taxes estimatives.
+- L'administration affiche les vrais projets, commandes, comptes, professionnels, événements et données comptables. Les outils de modification des utilisateurs, campagnes, contenus, SEO et réponse aux messages ne sont pas encore opérationnels : l'interface ne doit pas présenter de simulation comme une action réelle.
+- Les commandes ne peuvent pas être payées tant que Stripe n'est pas connecté. Les courriels de commande sont mis en file mais ne sont pas expédiés sans fournisseur d'envoi configuré. Aucune commande Lulu automatique ne peut être lancée sans clés, prépresse validé et coût livré confirmé.
+- Les prix et taxes sont provisoires : devis Lulu par destination, coût d'expédition, frais de paiement et traitement fiscal précis restent à valider avant la première vente. Le tableau comptable est un outil de suivi, pas un bilan certifié.
+
 ## Ajouts déjà réalisés sans Stripe
 
 - [x] Architecture Supabase actuelle prête pour Vercel : authentification par lien courriel, sessions SSR par cookies, base Postgres et stockage privé.
@@ -21,8 +30,8 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 - [x] Créer le projet Supabase de production `emilieshop` au Canada et appliquer la migration.
 - [x] Créer le bucket privé `project-media` avec limite de 50 Mo et types de fichiers autorisés.
 - [x] Ajouter `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` à Vercel pour Production, Preview et Development.
-- [ ] Ajouter `SUPABASE_SECRET_KEY` à Vercel après authentification au tableau de bord Supabase.
-- [ ] Autoriser les redirections `https://emilieshop.vercel.app/auth/callback` dans Supabase Auth.
+- [x] Ajouter `SUPABASE_SECRET_KEY` à Vercel pour Production, Preview et Development.
+- [x] Autoriser les redirections `https://emilieshop.vercel.app/auth/callback` dans Supabase Auth.
 - [ ] Configurer le SMTP personnalisé pour les liens de connexion et tester une vraie boîte courriel.
 - [ ] Attribuer le rôle propriétaire au compte d’Emilie et tester l’isolation de deux comptes distincts.
 
@@ -49,7 +58,7 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### Présent comme démonstration, mais pas encore relié aux opérations réelles
 
-- [ ] Tableaux financiers et chiffres d’affaires de l’administration.
+- [x] Tableaux financiers alimentés par les commandes réelles, journal comptable et impression du rapport ; rapprochement bancaire et validation comptable restent à faire.
 - [ ] Gestion complète des utilisateurs et rôles depuis l’interface.
 - [ ] Envoi réel des campagnes newsletter.
 - [ ] Messagerie bidirectionnelle administrateur-client en temps réel.
@@ -74,9 +83,9 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 2. Produits et prix
 
-- [ ] Choisir définitivement le format du livre Essentiel : dimensions, pages incluses, papier, couverture et reliure.
-- [ ] Choisir le format du livre Souvenir et les différences réellement livrées.
-- [ ] Confirmer si l’offre Famille contient deux ou trois exemplaires.
+- [x] Fixer le format affiché au lancement à 24 pages pour toutes les offres ; le gabarit industriel exact reste à valider avec Lulu.
+- [x] Définir les différences commerciales : Souvenir inclut un Memory Link d'un an ; Famille inclut deux exemplaires et trois ans de Memory Link.
+- [x] Confirmer que l’offre Famille contient deux exemplaires.
 - [ ] Fixer le prix des pages supplémentaires, copies, coffrets, films, cadres et QR/NFC.
 - [ ] Déterminer si la livraison est incluse ou calculée séparément.
 - [ ] Définir les taxes par province et les ventes futures aux États-Unis.
@@ -85,13 +94,13 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 3. Imprimeur
 
-- [ ] Ouvrir un compte Prodigi et créer une clé d’essai.
-- [ ] Commander un exemplaire Hardcover carré 21 × 21 cm.
-- [ ] Commander un exemplaire Layflat carré avec le même contenu.
-- [ ] Commander le même prototype chez Pikto ou Photo Laplante pour comparaison.
+- [x] Choisir Lulu comme fournisseur à intégrer pour l'impression à l'unité.
+- [ ] Créer les clés Lulu Print API et obtenir un devis réel pour un exemplaire livré au Canada, aux États-Unis et en Europe.
+- [ ] Commander un exemplaire prototype Hardcover carré auprès de Lulu.
+- [ ] Comparer le prototype à un autre imprimeur si la qualité ou le coût livré ne conviennent pas.
 - [ ] Vérifier couleurs, contraste, lisibilité, bords perdus, pli central, couverture, emballage et dommages de transport.
 - [ ] Choisir le fournisseur principal et un fournisseur de secours.
-- [ ] Obtenir le coût exact livré à Laval pour 1, 10, 25 et 50 exemplaires.
+- [ ] Obtenir le coût exact livré à Laval pour un exemplaire et deux exemplaires ; les packs professionnels sont des crédits de livres personnalisés, non un tirage de dix exemplaires identiques.
 - [ ] Obtenir les gabarits définitifs : fond perdu, zone sûre, couverture, dos et profil PDF/X.
 - [ ] Confirmer l’emballage sans marque, les retours, réimpressions et numéros de suivi.
 - [ ] Brancher l’API seulement après validation physique des prototypes.
@@ -119,11 +128,11 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 6. Comptes clients
 
-- [ ] Choisir une connexion publique sans mot de passe, adaptée aux clients qui n’ont pas de compte ChatGPT.
+- [x] Mettre en place une connexion publique Supabase sans mot de passe, indépendante d'un compte ChatGPT.
 - [ ] Configurer l’adresse d’envoi et le modèle du courriel de connexion.
 - [ ] Prévoir invitation, expiration, renvoi du lien et changement d’adresse courriel.
-- [ ] Charger les vrais projets, commandes, messages et Memory Links dans le profil connecté.
-- [ ] Ajouter l’export des données et la demande de suppression.
+- [x] Charger les vrais projets, commandes et messages dans le profil connecté ; gestion complète des Memory Links à poursuivre.
+- [x] Ajouter l’export des données et la demande de suppression.
 - [ ] Tester qu’un utilisateur ne peut jamais ouvrir les projets ou médias d’un autre.
 
 ### 7. Courriels et notifications
@@ -136,7 +145,7 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 8. Administration réelle
 
-- [ ] Remplacer toutes les statistiques de démonstration par des données calculées depuis la base.
+- [x] Remplacer les statistiques fictives par des données calculées depuis la base dans l'administration réelle ; garder la démonstration sur une route distincte.
 - [ ] Créer la recherche, les filtres, la pagination et les exports.
 - [ ] Rendre fonctionnels l’ajout, la modification, l’archivage et les rôles utilisateurs.
 - [ ] Ajouter un journal d’audit pour les changements sensibles.

@@ -38,6 +38,9 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
         displayName: fullName || data.user.email.split('@')[0],
       };
     }
+    // On Vercel, never accept legacy forwarded identity headers as a fallback.
+    // Only a verified Supabase session can authorize accounts or administration.
+    return null;
   }
 
   const requestHeaders = await headers();

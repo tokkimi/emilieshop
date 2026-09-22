@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from './SafeLink';
+import { RealCustomerAccount } from './RealCustomerAccount';
 
 type CustomerDashboardProps={name:string;email:string;locale?:'fr'|'en';demo?:boolean};
 type CloudProject={id:string;title:string;address:string|null;status:string;progress:number;collection:string;updated_at:string};
 
 export function CustomerDashboard(props:CustomerDashboardProps){
-  return props.demo?<DemoCustomerDashboard {...props}/>:<RealCustomerDashboard {...props}/>;
+  return props.demo?<DemoCustomerDashboard {...props}/>:<RealCustomerAccount {...props}/>;
 }
 
 function RealCustomerDashboard({name,email,locale='fr'}:CustomerDashboardProps){
