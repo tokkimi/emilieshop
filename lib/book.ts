@@ -26,6 +26,7 @@ export type GeneratedBook = {
   address: string;
   collection: string;
   coverColor: string;
+  pageColor?: string;
   version: number;
   status: 'draft' | 'ready' | 'approved';
   pages: BookPage[];

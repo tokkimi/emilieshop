@@ -508,12 +508,6 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
                 {en ? "Save" : "Enregistrer"}
               </button>
             </article>
-            <article className="panel">
-              <h2>{en ? "Privacy & data" : "Confidentialité et données"}</h2>
-              <a className="button button-small" href="/api/account/export">
-                {en ? "Download my data" : "Télécharger mes données"}
-              </a>
-            </article>
           </form>
         ) : null}
       </section>

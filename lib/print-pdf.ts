@@ -3,7 +3,9 @@ import QRCode from 'qrcode';
 import { ensureCompleteBook, type BookMedia, type BookPage, type GeneratedBook } from './book';
 
 const POINTS_PER_INCH = 72;
-const INTERIOR_SIZE = 8.75 * POINTS_PER_INCH;
+// Lulu 8.5 × 11 in hardcover interior, including 0.125 in bleed on every edge.
+const INTERIOR_WIDTH = 8.75 * POINTS_PER_INCH;
+const INTERIOR_HEIGHT = 11.25 * POINTS_PER_INCH;
 const TRIM_INSET = 0.125 * POINTS_PER_INCH;
 const SAFE_INSET = 0.5 * POINTS_PER_INCH;
 
@@ -27,8 +29,11 @@ export type PrintPdfResult = {
 };
 
 const palette: Record<string, { dark: ReturnType<typeof cmyk>; light: ReturnType<typeof cmyk>; accent: ReturnType<typeof cmyk> }> = {
+  white: { dark: cmyk(.68, .53, .61, .58), light: cmyk(0, 0, 0, 0), accent: cmyk(.33, .08, .35, .05) },
   forest: { dark: cmyk(.74, .42, .67, .43), light: cmyk(.05, .03, .08, 0), accent: cmyk(.33, .08, .35, .05) },
   clay: { dark: cmyk(.22, .67, .58, .28), light: cmyk(.04, .08, .08, 0), accent: cmyk(.12, .45, .40, .04) },
+  sage: { dark: cmyk(.46, .28, .43, .20), light: cmyk(.08, .03, .09, 0), accent: cmyk(.30, .12, .31, .06) },
+  black: { dark: cmyk(.70, .63, .62, .74), light: cmyk(.03, .02, .02, 0), accent: cmyk(.20, .10, .12, .20) },
   linen: { dark: cmyk(.44, .38, .39, .42), light: cmyk(.03, .03, .05, 0), accent: cmyk(.17, .20, .29, .05) },
   midnight: { dark: cmyk(.83, .65, .39, .49), light: cmyk(.05, .03, .02, 0), accent: cmyk(.49, .31, .13, .11) },
 };
@@ -111,8 +116,8 @@ function pagePhotos(page: BookPage, embedded: Map<string, Embedded>) {
 
 function drawInteriorPage(target: PDFPage, content: BookPage, pageNumber: number, embedded: Map<string, Embedded>, fonts: { serif: PDFFont; serifBold: PDFFont; sans: PDFFont; sansBold: PDFFont }, colors: PrintPalette) {
   const photos = pagePhotos(content, embedded);
-  const width = INTERIOR_SIZE;
-  const height = INTERIOR_SIZE;
+  const width = INTERIOR_WIDTH;
+  const height = INTERIOR_HEIGHT;
   target.drawRectangle({ x: 0, y: 0, width, height, color: colors.light });
   const safe = TRIM_INSET + SAFE_INSET;
   const usable = width - safe * 2;
@@ -173,7 +178,7 @@ export async function buildPrintPdfs(input: PrintPdfInput): Promise<PrintPdfResu
   const colors = palette[book.coverColor] || palette.forest;
   const interiorPages = book.pages.filter((page) => page.kind !== 'cover').slice(0, 24);
   while (interiorPages.length < 24) interiorPages.push({ id: `blank-${interiorPages.length}`, kind: 'story', title: '', body: '', mediaIds: [], layout: 'minimal' });
-  interiorPages.forEach((content, index) => drawInteriorPage(interiorDocument.addPage([INTERIOR_SIZE, INTERIOR_SIZE]), content, index + 1, embedded, fonts, colors));
+  interiorPages.forEach((content, index) => drawInteriorPage(interiorDocument.addPage([INTERIOR_WIDTH, INTERIOR_HEIGHT]), content, index + 1, embedded, fonts, colors));
 
   const coverDocument = await PDFDocument.create();
   coverDocument.setTitle(`${printable(book.title)} - couverture`);

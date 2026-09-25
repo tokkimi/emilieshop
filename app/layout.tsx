@@ -20,12 +20,12 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://emilieshop.vercel.app'),
+  metadataBase: new URL('https://memoiremaison.com'),
   manifest: '/manifest.webmanifest',
   title: 'Mémoire Maison — Chaque maison a une histoire',
   description: 'Créez un livre souvenir personnalisé de votre maison, à partir de vos photos, de vos mots et de votre voix.',
   icons: {
-    icon: [{ url: '/favicon.png', type: 'image/png', sizes: '64x64' }],
+    icon: [{ url: '/favicon.ico', sizes: '48x48' }, { url: '/favicon.png', type: 'image/png', sizes: '64x64' }, { url: '/icon-192.png', type: 'image/png', sizes: '192x192' }],
     apple: [{ url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' }],
   },
   alternates: { canonical: '/', languages: { 'fr-CA': '/', 'en-CA': '/en' } },
