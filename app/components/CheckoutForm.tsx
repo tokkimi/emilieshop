@@ -122,7 +122,7 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
         shippingAddress: address,
       }),
     });
-    const result = await response.json() as {error?:string;order?:{orderNumber:string}};
+    const result = await response.json() as {error?:string;order?:{orderNumber:string};checkoutUrl?:string|null};
     if (!response.ok) {
       setStatus("error");
       setMessage(
@@ -134,6 +134,10 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
       return;
     }
     localStorage.removeItem(CART_STORAGE_KEY);
+    if (result.checkoutUrl) {
+      window.location.href = result.checkoutUrl;
+      return;
+    }
     setOrderNumber(result.order?.orderNumber || '');
     setStatus("done");
   };
