@@ -330,8 +330,8 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
                 ? "Saving…"
                 : "Enregistrement…"
               : en
-                ? "Save my order →"
-                : "Enregistrer ma commande →"}
+                ? "Pay and print →"
+                : "Payer et imprimer →"}
           </button>
           <Link href={en ? "/en/preview" : "/apercu"}>
             {en ? "← Return to proof" : "← Revenir à l’aperçu"}
