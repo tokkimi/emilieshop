@@ -12,7 +12,7 @@ export async function GET() {
   const admin = createSupabaseAdminClient();
   let serverAdministration = false;
   if (admin) {
-    const { error } = await admin.from('profiles').select('id').limit(1);
+    const { error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
     serverAdministration = !error;
   }
   return NextResponse.json({
