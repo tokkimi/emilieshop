@@ -2,7 +2,7 @@ const productionBaseUrl = 'https://api.lulu.com';
 const sandboxBaseUrl = 'https://api.sandbox.lulu.com';
 
 export const LULU_DEFAULT_POD_PACKAGE_ID =
-  process.env.LULU_POD_PACKAGE_ID || '0850X0850.FC.PRE.CW.080CW444.MXX';
+  process.env.LULU_POD_PACKAGE_ID || '0850X1100.FC.PRE.CW.080CW444.MXX';
 export const LULU_DEFAULT_PAGE_COUNT = 24;
 
 type LuluEnvironment = 'sandbox' | 'production';
@@ -37,8 +37,8 @@ export function getLuluConfiguration() {
     contactEmail: process.env.LULU_CONTACT_EMAIL || null,
     product: {
       podPackageId: LULU_DEFAULT_POD_PACKAGE_ID,
-      name: 'Livre photo carré — Couverture rigide',
-      trimSize: '21,6 × 21,6 cm',
+      name: 'Livre photo portrait — Couverture rigide',
+      trimSize: '21,6 × 27,9 cm',
       pageCount: LULU_DEFAULT_PAGE_COUNT,
       interior: 'Couleur premium',
       paper: 'Papier blanc couché 80 lb',
