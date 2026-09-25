@@ -44,6 +44,7 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
   );
   const [message, setMessage] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [pendingOrderId, setPendingOrderId] = useState("");
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const queryProject =
@@ -63,6 +64,26 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
         }
       } catch {
         /* empty cart */
+      }
+      const payment = new URL(window.location.href).searchParams.get("payment");
+      const sessionId = new URL(window.location.href).searchParams.get("session_id");
+      if (payment === "cancelled") {
+        setMessage(en ? "Payment cancelled. Your order is still available in your account." : "Paiement annulé. Votre commande reste disponible dans votre profil.");
+      }
+      if (payment === "success" && sessionId) {
+        setStatus("sending");
+        fetch(`/api/stripe/checkout?sessionId=${encodeURIComponent(sessionId)}`)
+          .then(async (response) => ({ ok: response.ok, result: await response.json() as { paid?: boolean; orderNumber?: string; error?: string } }))
+          .then(({ ok, result }) => {
+            if (!ok || !result.paid) throw new Error(result.error || "payment");
+            localStorage.removeItem(CART_STORAGE_KEY);
+            setOrderNumber(result.orderNumber || "Maison Mémoire");
+            setStatus("done");
+          })
+          .catch(() => {
+            setStatus("error");
+            setMessage(en ? "Payment is being verified. Check your order in your account in a moment." : "Le paiement est en cours de vérification. Consultez votre commande dans votre profil dans un instant.");
+          });
       }
     }, 0);
     fetch("/api/account/profile")
@@ -85,7 +106,7 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
       })
       .catch(() => null);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [en]);
   const plan = getPlan(planId);
   const subtotal = useMemo(
     () => calculateCatalogSubtotal(planId, addOnIds),
@@ -98,6 +119,17 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
     address.regionCode,
   );
   const total = subtotal + shipping + (tax.taxCents || 0);
+  const startCheckout = async (orderId: string) => {
+    const checkout = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    const result = await checkout.json() as { url?: string; error?: string };
+    if (!checkout.ok || !result.url) throw new Error(result.error || (en ? "Secure payment is unavailable." : "Le paiement sécurisé est indisponible."));
+    localStorage.removeItem(CART_STORAGE_KEY);
+    window.location.assign(result.url);
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!projectId) {
@@ -111,6 +143,10 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
     }
     setStatus("sending");
     setMessage("");
+    if (pendingOrderId) {
+      try { await startCheckout(pendingOrderId); } catch (error) { setStatus("error"); setMessage(error instanceof Error ? error.message : "Stripe indisponible."); }
+      return;
+    }
     const response = await fetch("/api/orders", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -122,7 +158,7 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
         shippingAddress: address,
       }),
     });
-    const result = await response.json() as {error?:string;order?:{orderNumber:string}};
+    const result = await response.json() as {error?:string;order?:{id:string;orderNumber:string}};
     if (!response.ok) {
       setStatus("error");
       setMessage(
@@ -133,23 +169,22 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
       );
       return;
     }
-    localStorage.removeItem(CART_STORAGE_KEY);
-    setOrderNumber(result.order?.orderNumber || '');
-    setStatus("done");
+    if (!result.order?.id) { setStatus("error"); setMessage(en ? "The order could not be prepared." : "La commande n’a pas pu être préparée."); return; }
+    setPendingOrderId(result.order.id);
+    setOrderNumber(result.order.orderNumber || '');
+    try { await startCheckout(result.order.id); } catch (error) { setStatus("error"); setMessage(error instanceof Error ? error.message : "Stripe indisponible."); }
   };
   if (status === "done")
     return (
       <main className="checkout-page">
         <section className="checkout-success">
           <span>✓</span>
-          <p className="eyebrow">
-            {en ? "Order saved" : "Commande enregistrée"}
-          </p>
+          <p className="eyebrow">{en ? "Payment confirmed" : "Paiement confirmé"}</p>
           <h1>{orderNumber}</h1>
           <p>
             {en
-              ? "Your cart is now empty. The order is in your account and remains safely on hold until online payment is activated."
-              : "Votre panier est maintenant vidé. La commande se trouve dans votre profil et reste en attente sécurisée jusqu’à l’activation du paiement en ligne."}
+              ? "Maison Mémoire has received your payment. Your order is in your account and will enter preflight before printing."
+              : "Maison Mémoire a reçu votre paiement. La commande se trouve dans votre profil et passe au contrôle prépresse avant impression."}
           </p>
           <Link className="button" href={en ? "/en/profile" : "/profil"}>
             {en ? "View my orders →" : "Voir mes commandes →"}
@@ -323,11 +358,11 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
           <button className="button" disabled={status === "sending"}>
             {status === "sending"
               ? en
-                ? "Saving…"
-                : "Enregistrement…"
+                ? "Opening secure payment…"
+                : "Ouverture du paiement sécurisé…"
               : en
-                ? "Save my order →"
-                : "Enregistrer ma commande →"}
+                ? "Pay securely →"
+                : "Payer en toute sécurité →"}
           </button>
           <Link href={en ? "/en/preview" : "/apercu"}>
             {en ? "← Return to proof" : "← Revenir à l’aperçu"}

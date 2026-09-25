@@ -58,7 +58,7 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
       projectId = ((await projectResponse.json()) as { id: string }).id;
       let media: BookMedia[] = assets.map(({ id, name, kind, storageKey }) => ({ id, name, kind, storageKey }));
       if (projectId) {
-        const uploaded = await Promise.all(assets.map(async (asset) => { const form = new FormData(); form.set('projectId', projectId!); form.set('file', asset.file); const response = await fetch('/api/uploads', { method: 'POST', body: form }); if (!response.ok) return { id: asset.id, name: asset.name, kind: asset.kind, storageKey: asset.storageKey }; const result = (await response.json()) as { id: string }; return { id: result.id, name: asset.name, kind: asset.kind, previewUrl: `/api/media/${result.id}`, storageKey: asset.storageKey }; }));
+        const uploaded = await Promise.all(assets.map(async (asset) => { const form = new FormData(); form.set('projectId', projectId!); form.set('file', asset.file); const response = await fetch('/api/uploads', { method: 'POST', body: form }); if (!response.ok) throw new Error('upload'); const result = (await response.json()) as { id: string }; return { id: result.id, name: asset.name, kind: asset.kind, previewUrl: `/api/media/${result.id}`, storageKey: result.id }; }));
         media = uploaded;
       }
       const source: BookGenerationInput = { projectId, locale, title: title.trim() || t.title, subtitle: years.trim(), address: address.trim(), collection: format, coverColor: color, answers: Object.fromEntries(Object.entries(answers).map(([key, value]) => [t.questions[Number(key)] || key, value])), media };

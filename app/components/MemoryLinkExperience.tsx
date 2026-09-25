@@ -18,14 +18,15 @@ function sampleBook(locale: BookLocale) {
   return fallbackBook({ locale, title: locale === 'en' ? 'The Maple House' : 'La maison des Érables', subtitle: '2008 — 2026', address: 'Québec', collection: locale === 'en' ? 'Keepsake' : 'Souvenir', coverColor: 'forest', answers: {}, media: [] }, `memory-${locale}`);
 }
 
-export function MemoryLinkExperience({ locale = 'fr' }: { locale?: BookLocale }) {
+export function MemoryLinkExperience({ locale = 'fr', initialBook }: { locale?: BookLocale; initialBook?: GeneratedBook }) {
   const en = locale === 'en';
-  const [book, setBook] = useState<GeneratedBook>(() => sampleBook(locale));
-  const [loaded, setLoaded] = useState(false);
+  const [book, setBook] = useState<GeneratedBook>(() => initialBook ? ensureCompleteBook(initialBook) : sampleBook(locale));
+  const [loaded, setLoaded] = useState(Boolean(initialBook));
 
   useEffect(() => {
     let cancelled = false;
     const restore = async () => {
+      if (initialBook) { if (!cancelled) setLoaded(true); return; }
       try {
         const stored = sessionStorage.getItem(BOOK_STORAGE_KEY) || localStorage.getItem(BOOK_STORAGE_KEY);
         if (stored) {
@@ -38,7 +39,7 @@ export function MemoryLinkExperience({ locale = 'fr' }: { locale?: BookLocale })
     };
     void restore();
     return () => { cancelled = true; };
-  }, []);
+  }, [initialBook]);
 
   const photos = useMemo(() => book.media.filter((item) => item.kind === 'photo' && item.previewUrl), [book.media]);
   const videos = useMemo(() => book.media.filter((item) => item.kind === 'video' && item.previewUrl), [book.media]);
