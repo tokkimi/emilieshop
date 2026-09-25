@@ -5,6 +5,7 @@ import { assertSustainablePrice, calculateCatalogSubtotal, estimateShippingCents
 import { estimateTax } from '../../../lib/tax';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../../../lib/supabase/server';
 import { queueAndSendOrderEmail } from '../../../lib/transactional-email';
+import { createCheckoutSession } from '../../../lib/stripe';
 
 export const dynamic='force-dynamic';
 const schema=z.object({projectId:z.string().uuid(),planId:z.enum(['essential','keepsake','family']),addOnIds:z.array(z.enum(['extra-copy','mini-film','memory-link','digital-frame'])).max(8).default([]),locale:z.enum(['fr','en']).default('fr'),shippingAddress:z.object({name:z.string().min(2).max(120),street1:z.string().min(3).max(150),street2:z.string().max(150).optional(),city:z.string().min(2).max(100),regionCode:z.string().min(2).max(3),countryCode:z.string().length(2),postalCode:z.string().min(3).max(20),phone:z.string().min(8).max(25)})});
@@ -37,5 +38,8 @@ export async function POST(request:Request){
   if(error)return NextResponse.json({error:'La commande n’a pas pu être enregistrée.'},{status:503});
   const email=await queueAndSendOrderEmail({orderId:id,orderNumber,email:user.email,name:input.shippingAddress.name,total:formatCad(totalCents,input.locale),locale:input.locale});
   await admin.from('orders').update({confirmation_email_status:email.status}).eq('id',id);
-  return NextResponse.json({order:{id,orderNumber,totalCents,status:'awaiting_payment'},emailStatus:email.status},{status:201});
+  const origin=process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/,'')||new URL(request.url).origin;
+  let checkoutUrl:string|null=null;
+  try{const session=await createCheckoutSession({orderId:id,orderNumber,totalCents,currency:'CAD',email:user.email,locale:input.locale,label:plan.name[input.locale],origin});checkoutUrl=session?.url||null;}catch{checkoutUrl=null;}
+  return NextResponse.json({order:{id,orderNumber,totalCents,status:'awaiting_payment'},emailStatus:email.status,checkoutUrl},{status:201});
 }
