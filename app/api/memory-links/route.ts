@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getChatGPTUser } from '../../chatgpt-auth';
-import { createSupabaseAdminClient } from '../../../lib/supabase/server';
+import { createSupabaseServerClient } from '../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Projet manquant' }, { status: 400 });
-  const admin = createSupabaseAdminClient();
+  // Client de l'utilisateur : les règles RLS lui donnent accès à ses propres projets et liens.
+  const admin = await createSupabaseServerClient();
   if (!admin) return NextResponse.json({ error: 'Service indisponible' }, { status: 503 });
   const { projectId } = parsed.data;
 
