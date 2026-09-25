@@ -20,7 +20,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://emilieshop.vercel.app'),
+  metadataBase: new URL('https://memoiremaison.com'),
   manifest: '/manifest.webmanifest',
   title: 'Mémoire Maison — Chaque maison a une histoire',
   description: 'Créez un livre souvenir personnalisé de votre maison, à partir de vos photos, de vos mots et de votre voix.',
