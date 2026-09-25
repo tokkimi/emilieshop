@@ -7,7 +7,8 @@ export function SiteHeader({ compact = false, locale = 'fr', homeThemes = locale
   return (
     <header className={`site-header ${compact ? 'header-compact' : ''}`}>
       <Link className="brand" href={en ? '/en' : '/'} aria-label={`Mémoire Maison - ${en ? 'Home' : 'Accueil'}`}>
-        <span className="brand-mark">M</span><span>Mémoire Maison</span>
+        <img className="brand-full" src="/memoire-maison-logo.png" alt="Mémoire Maison" width="585" height="180" />
+        <span className="brand-compact"><span className="brand-mark">M</span><span>Mémoire Maison</span></span>
       </Link>
       <nav className="main-nav" aria-label="Navigation principale">
         <Link href={en ? '/en#how' : '/#comment'}>{en ? 'How it works' : 'Comment ça marche'}</Link>
