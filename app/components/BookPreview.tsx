@@ -8,6 +8,7 @@ import { BOOK_STORAGE_KEY, bookForStorage, ensureCompleteBook, fallbackBook, typ
 import { COVER_COLORS, PAGE_COLORS, PRINT_TRIM } from '../../lib/book-design';
 import { CART_STORAGE_KEY, calculateCatalogSubtotal, formatCad } from '../../lib/catalog';
 import { BookPageView } from './BookPageView';
+import { BookFlip } from './BookFlip';
 
 type Tab = 'photos' | 'layouts' | 'colors' | 'link';
 const LAYOUTS: { id: BookPage['layout']; fr: string; en: string }[] = [
@@ -52,6 +53,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [approvalError, setApprovalError] = useState('');
   const [price, setPrice] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [flipOpen, setFlipOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const profile = en ? '/en/profile' : '/profil';
   const studio = en ? '/en/studio' : '/atelier';
@@ -201,7 +203,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
         <Link className="bk-logo" href={profile}><img src="/memoire-maison-logo.png" alt="Mémoire Maison" /></Link>
         <span className={`bk-save ${saveState}`}>{saveState === 'saved' ? tr('✓ Enregistré', '✓ Saved') : tr('Enregistrement…', 'Saving…')}</span>
         <div className="bk-top-actions">
-          <button type="button" className="bk-ghost" onClick={() => window.print()}>{tr('Aperçu PDF', 'PDF proof')}</button>
+          <button type="button" className="bk-ghost" onClick={() => setFlipOpen(true)}>{tr('Feuilleter le livre', 'Flip through')}</button>
           <button type="button" className="bk-pay" onClick={openCheckout} disabled={!restored}>{tr('Payer et imprimer', 'Pay and print')}{price ? ` · ${formatCad(price, locale)}` : ''} →</button>
         </div>
       </header>
@@ -304,9 +306,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
         ))}
       </footer>
 
-      <section className="bk-print" aria-hidden="true">
-        {book.pages.map((item, index) => <div className="bk-print-page" key={item.id}><BookPageView page={item} book={book} index={index} photoUrl={photoUrl} qrUrl={memoryUrl || undefined} /></div>)}
-      </section>
+      {flipOpen ? <BookFlip book={book} photoUrl={photoUrl} qrUrl={memoryUrl || undefined} en={en} onClose={() => setFlipOpen(false)} /> : null}
 
       {checkoutOpen ? (
         <div className="bk-modal" role="dialog" aria-modal="true">
