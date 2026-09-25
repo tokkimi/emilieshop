@@ -2,17 +2,25 @@ import { NextResponse } from 'next/server';
 import { getLuluConfiguration } from '../../../../lib/lulu';
 import { hasSupabaseAdminConfig, hasSupabasePublicConfig } from '../../../../lib/supabase/config';
 import { getStripeConfiguration } from '../../../../lib/stripe';
+import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export function GET() {
+export async function GET() {
   const lulu = getLuluConfiguration();
   const stripe = getStripeConfiguration();
+  const admin = createSupabaseAdminClient();
+  let serverAdministration = false;
+  if (admin) {
+    const { error } = await admin.from('profiles').select('id').limit(1);
+    serverAdministration = !error;
+  }
   return NextResponse.json({
     database: hasSupabasePublicConfig(),
     privateStorage: hasSupabasePublicConfig(),
     authentication: hasSupabasePublicConfig(),
-    serverAdministration: hasSupabaseAdminConfig(),
+    serverAdministration,
+    serverAdministrationConfigured: hasSupabaseAdminConfig(),
     lulu: lulu.configured,
     luluOrders: lulu.ordersEnabled,
     payments: stripe.configured,
