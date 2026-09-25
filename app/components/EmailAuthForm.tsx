@@ -47,12 +47,24 @@ async function ensureProfile(supabase: SupabaseClient) {
 type Mode = 'signin' | 'signup';
 type Status = 'idle' | 'sending' | 'confirm' | 'reset' | 'error' | 'unavailable';
 
-export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?: 'fr' | 'en'; fallback?: string }) {
+export function EmailAuthForm({
+  locale = 'fr',
+  fallback = '/profil',
+  onSuccess,
+  hideGoogle = false,
+  initialMode = 'signin',
+}: {
+  locale?: 'fr' | 'en';
+  fallback?: string;
+  onSuccess?: () => void;
+  hideGoogle?: boolean;
+  initialMode?: Mode;
+}) {
   const en = locale === 'en';
   const t = (fr: string, enText: string) => (en ? enText : fr);
-  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
+  const googleEnabled = !hideGoogle && process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
 
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -81,7 +93,41 @@ export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?
     const cleanEmail = email.trim().toLowerCase();
     const next = currentNext();
 
+    const finish = () => {
+      if (onSuccess) {
+        setStatus('idle');
+        onSuccess();
+      } else {
+        window.location.assign(next);
+      }
+    };
+
     if (mode === 'signup') {
+      // Création immédiate côté serveur : pas de courriel de confirmation bloquant.
+      const created = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password, name: name.trim() || undefined }),
+      }).catch(() => null);
+      if (created && created.status === 409) {
+        setStatus('error');
+        setError(mapError('already registered', en));
+        return;
+      }
+      if (created && created.status === 400) {
+        setStatus('error');
+        setError(mapError('password should be at least', en));
+        return;
+      }
+      if (created && created.ok) {
+        const { error: autoSignInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (!autoSignInError) {
+          await ensureProfile(supabase);
+          finish();
+          return;
+        }
+      }
+      // Repli : inscription classique Supabase.
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -98,7 +144,7 @@ export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?
       }
       if (data.session) {
         await ensureProfile(supabase);
-        window.location.assign(next);
+        finish();
         return;
       }
       setStatus('confirm');
@@ -112,7 +158,7 @@ export function EmailAuthForm({ locale = 'fr', fallback = '/profil' }: { locale?
       return;
     }
     await ensureProfile(supabase);
-    window.location.assign(next);
+    finish();
   }
 
   async function googleSignIn() {

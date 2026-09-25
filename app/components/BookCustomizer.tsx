@@ -4,6 +4,7 @@ import Link from './SafeLink';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { BOOK_STORAGE_KEY, STUDIO_STORAGE_KEY, bookForStorage, type BookGenerationInput, type BookLocale, type BookMedia, type GeneratedBook } from '../../lib/book';
 import { removeLocalMedia, saveLocalMedia } from '../../lib/client-media';
+import { EmailAuthForm } from './EmailAuthForm';
 import { CART_STORAGE_KEY, CATALOG_ADD_ONS, CATALOG_PLANS, calculateCatalogSubtotal } from '../../lib/catalog';
 
 const copy = {
@@ -21,7 +22,7 @@ type GenerationResponse = { book: GeneratedBook; generation: { id: string; model
 
 export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
   const en = locale === 'en'; const t = copy[locale];
-  const [step, setStep] = useState(1); const [title, setTitle] = useState(t.title); const [address, setAddress] = useState(''); const [years, setYears] = useState('2008 — 2026'); const [color, setColor] = useState('forest'); const [format, setFormat] = useState(t.format[0]); const [answers, setAnswers] = useState<Record<number, string>>({}); const [selectedExtras, setSelectedExtras] = useState<string[]>([]); const [assets, setAssets] = useState<LocalAsset[]>([]); const [draftReady, setDraftReady] = useState(false); const [generating, setGenerating] = useState(false); const [generationStage, setGenerationStage] = useState(0); const [error, setError] = useState('');
+  const [step, setStep] = useState(1); const [title, setTitle] = useState(t.title); const [address, setAddress] = useState(''); const [years, setYears] = useState('2008 — 2026'); const [color, setColor] = useState('forest'); const [format, setFormat] = useState(t.format[0]); const [answers, setAnswers] = useState<Record<number, string>>({}); const [selectedExtras, setSelectedExtras] = useState<string[]>([]); const [assets, setAssets] = useState<LocalAsset[]>([]); const [draftReady, setDraftReady] = useState(false); const [generating, setGenerating] = useState(false); const [generationStage, setGenerationStage] = useState(0); const [error, setError] = useState(''); const [authOpen, setAuthOpen] = useState(false);
   const planIndex=Math.max(0,t.format.indexOf(format));const selectedPlan=CATALOG_PLANS[planIndex];const addOns=CATALOG_ADD_ONS.map((item)=>({id:item.id,name:item.name[locale],detail:item.detail[locale],price:item.priceCents/100}));
   const total = useMemo(() => calculateCatalogSubtotal(selectedPlan.id,selectedExtras)/100, [selectedPlan.id,selectedExtras]);
 
@@ -53,7 +54,7 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
     let projectId: string | undefined;
     try {
       const projectResponse = await fetch('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, address, years, collection: format, coverColor: color, answers, options: selectedExtras }) });
-      if(projectResponse.status===401){window.location.assign(`${en?'/en/sign-in':'/connexion'}?next=${encodeURIComponent(en?'/en/studio':'/atelier')}`);return}
+      if(projectResponse.status===401){setAuthOpen(true);return}
       if (!projectResponse.ok) throw new Error('project');
       projectId = ((await projectResponse.json()) as { id: string }).id;
       let media: BookMedia[] = assets.map(({ id, name, kind, storageKey }) => ({ id, name, kind, storageKey }));
@@ -77,7 +78,8 @@ export function BookCustomizer({ locale = 'fr' }: { locale?: BookLocale }) {
   };
   const stages = en ? ['Preparing your story', 'Composing the pages', 'Placing your memories', 'Your preview is ready'] : ['Préparation de votre récit', 'Composition des pages', 'Placement de vos souvenirs', 'Votre aperçu est prêt'];
 
-  return <div className="studio-shell">
+  const authModal = authOpen ? <div className="studio-auth-overlay" role="dialog" aria-modal="true" aria-label={en ? 'Create your account' : 'Créez votre compte'}><div className="studio-auth-card"><button type="button" className="studio-auth-close" aria-label={en ? 'Close' : 'Fermer'} onClick={() => setAuthOpen(false)}>×</button><p className="eyebrow">{en ? 'Last step before your preview' : 'Dernière étape avant votre aperçu'}</p><h2>{en ? 'Save your book to your account' : 'Enregistrez votre livre dans votre compte'}</h2><p>{en ? 'Everything you entered stays here. Create your account (or sign in) and we continue right away.' : 'Tout ce que vous avez rempli reste ici. Créez votre compte (ou connectez-vous) et on continue tout de suite.'}</p><EmailAuthForm locale={locale} hideGoogle initialMode="signup" onSuccess={() => { setAuthOpen(false); void createPreview(); }} /></div></div> : null;
+  return <div className="studio-shell">{authModal}
     <aside className="studio-sidebar"><Link className="studio-brand" href={t.home}><span className="brand-mark">M</span><span>Mémoire<br />Maison</span></Link><p className="studio-kicker">{en ? 'Creation studio' : 'Atelier de création'}</p><ol className="studio-steps">{t.steps.map((label, index) => <li key={label} className={step === index + 1 ? 'active' : step > index + 1 ? 'done' : ''}><button onClick={() => go(index + 1)}><span>{step > index + 1 ? '✓' : index + 1}</span>{label}</button></li>)}</ol><div className="studio-help"><span>♡</span><p><b>{en ? 'Need a hand?' : 'Besoin d’aide ?'}</b><br />{en ? 'Emilie and her team are here for you.' : 'Emilie et son équipe vous accompagnent.'}</p></div></aside>
     <main className="studio-main"><div className="studio-mobile-head"><Link href={t.home}><span className="brand-mark">M</span>Mémoire Maison</Link><b>{step}/4</b></div><div className="studio-mobile-progress"><i style={{ width: `${step * 25}%` }} /></div><div className="studio-top"><p>{draftReady ? (en ? 'Draft saved on this device' : 'Brouillon enregistré sur cet appareil') : (en ? 'Saving…' : 'Enregistrement…')}</p><Link href={t.profile}>{en ? 'Leave and finish later' : 'Quitter et reprendre plus tard'}</Link></div>
       <div className="studio-content"><section className="studio-form">
