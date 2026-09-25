@@ -22,6 +22,12 @@ export async function proxy(request: NextRequest) {
     url.port = '';
     return NextResponse.redirect(url, 308);
   }
+  const path = request.nextUrl.pathname.replace(/\/+$/, '').toLowerCase();
+  if (['/en/admin', '/administration', '/dashboard', '/en/dashboard', '/fondateur'].includes(path)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin';
+    return NextResponse.redirect(url, 308);
+  }
   return refreshSupabaseSession(request);
 }
 
