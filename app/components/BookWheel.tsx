@@ -3,7 +3,7 @@ import Link from './SafeLink';
 
 const LAPS = 4;
 
-type Book = { name: string; title: string; text: string; price: string; focus: string };
+type Book = { name: string; title: string; text: string; price: string; image: string };
 
 const copy = {
   fr: {
@@ -19,9 +19,9 @@ const copy = {
     price: (price: string) => `À partir de ${price}`,
     choose: (name: string) => `Choisir ${name} →`,
     books: [
-      { name: 'Essentiel', title: 'Le livre qui rassemble.', text: '24 pages, couverture rigide et aperçu numérique.', price: '149 $', focus: 'left center' },
-      { name: 'Souvenir', title: 'Une finition plus précieuse.', text: '24 pages, un livre rigide et Memory Link pendant 1 an.', price: '229 $', focus: 'center' },
-      { name: 'Famille', title: 'À transmettre entre générations.', text: '24 pages, 2 exemplaires et Memory Link pendant 3 ans.', price: '329 $', focus: 'right center' },
+      { name: 'Essentiel', title: 'Le livre qui rassemble.', text: '24 pages, couverture rigide et aperçu numérique.', price: '149 $', image: '/book-essentiel.webp' },
+      { name: 'Souvenir', title: 'Une finition plus précieuse.', text: '24 pages, un livre rigide et Memory Link pendant 1 an.', price: '229 $', image: '/book-souvenir.webp' },
+      { name: 'Famille', title: 'À transmettre entre générations.', text: '24 pages, 2 exemplaires et Memory Link pendant 3 ans.', price: '329 $', image: '/book-famille.webp' },
     ] as Book[],
   },
   en: {
@@ -37,9 +37,9 @@ const copy = {
     price: (price: string) => `From ${price} CAD`,
     choose: (name: string) => `Choose ${name} →`,
     books: [
-      { name: 'Essential', title: 'The book that brings it together.', text: '24 pages, one hardcover and digital proof.', price: '$149', focus: 'left center' },
-      { name: 'Keepsake', title: 'A more precious finish.', text: '24 pages, one hardcover and a 1-year Memory Link.', price: '$229', focus: 'center' },
-      { name: 'Family', title: 'Made for generations.', text: '24 pages, 2 copies and a 3-year Memory Link.', price: '$329', focus: 'right center' },
+      { name: 'Essential', title: 'The book that brings it together.', text: '24 pages, one hardcover and digital proof.', price: '$149', image: '/book-essentiel.webp' },
+      { name: 'Keepsake', title: 'A more precious finish.', text: '24 pages, one hardcover and a 1-year Memory Link.', price: '$229', image: '/book-souvenir.webp' },
+      { name: 'Family', title: 'Made for generations.', text: '24 pages, 2 copies and a 3-year Memory Link.', price: '$329', image: '/book-famille.webp' },
     ] as Book[],
   },
 };
@@ -50,9 +50,7 @@ export function BookWheel({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
   // full circle and the drum has enough to turn. Every card keeps its offer.
   const items: WorksWheelItem[] = Array.from({ length: LAPS }, () => t.books).flat().map((book, i) => ({
     title: book.name,
-    image: '/memory-book-collection-v2.jpg',
-    imagePosition: book.focus,
-    imageZoom: 1.9,
+    image: book.image,
     href: t.href,
     details: (
       <div className="book-wheel-details">
