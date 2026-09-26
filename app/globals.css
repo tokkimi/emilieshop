@@ -1,13 +1,5 @@
 @import 'tailwindcss';
 
-/* shadcn/ui colour tokens, mapped to the Mémoire Maison palette (premium.css). */
-@theme inline {
-  --color-background: var(--premium-paper, #fbfaf8);
-  --color-foreground: var(--premium-text, #1b1b19);
-  --color-muted: #e9e4de;
-  --color-muted-foreground: var(--premium-muted, #716d67);
-}
-
 :root { --ink:#23342f; --cream:#f3efe6; --paper:#fbfaf6; --sage:#748c78; --gold:#c68b4b; --line:rgba(35,52,47,.16); }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }

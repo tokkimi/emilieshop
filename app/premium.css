@@ -40,9 +40,11 @@ body{background:var(--premium-paper)}
 /* Mobile header: keep the monogram visible (the legacy ".brand>span:last-child" rule hid the whole compact logo) */
 @media(max-width:430px){.site-header .brand>.brand-compact{display:flex}.site-header .brand-compact>span:last-child{display:none}}
 /* Books section: the turning wheel (components/ui/works-wheel.tsx) */
-.book-wheel-section .section-heading{margin-bottom:24px}
+.book-wheel-section .section-heading{margin-bottom:0;position:static}
+.book-wheel-section .section-heading>p.book-wheel-hint{margin-top:18px;font:500 11px/1.6 var(--font-geist-sans),sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--premium-muted)}
+.book-wheel-stage .works-wheel-label,.book-wheel-stage .works-wheel-title{font-family:var(--font-display),Georgia,serif;font-weight:500;letter-spacing:-.03em}
 .book-wheel-hint{color:var(--premium-muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.book-wheel-stage{height:620px;max-width:1320px;margin:0 auto}
+.book-wheel-stage{max-width:1320px;margin:0 auto}
 .book-wheel-stage h3{font-family:var(--font-display),Georgia,serif}
 .book-wheel-details{margin-top:14px;font-size:14px}
 .book-wheel-details h3{margin:0 0 10px;font-size:clamp(20px,1.9vw,28px);font-weight:500;line-height:1.2}
@@ -50,4 +52,4 @@ body{background:var(--premium-paper)}
 .book-wheel-details b{display:block;margin:16px 0 14px;font:19px var(--font-display),serif}
 .book-wheel-details a{display:inline-block;padding-bottom:4px;border-bottom:1px solid currentColor;font-size:12px}
 .book-wheel-popular{display:inline-block;margin-bottom:12px;padding:5px 10px;border:1px solid var(--premium-line);border-radius:99px;background:#fff;font-size:9px;letter-spacing:.16em}
-@media(max-width:720px){.book-wheel-stage{height:700px}.book-wheel-details{margin-top:8px}.book-wheel-details h3{font-size:19px;margin-bottom:6px}.book-wheel-details b{margin:10px 0 8px;font-size:17px}}
+@media(max-width:720px){.book-wheel-details{margin-top:8px}.book-wheel-details h3{font-size:19px;margin-bottom:6px}.book-wheel-details b{margin:10px 0 8px;font-size:17px}}

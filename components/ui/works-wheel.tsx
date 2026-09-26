@@ -54,6 +54,14 @@ export interface WorksWheelProps extends Omit<
   /** Wheel delta that turns the wheel by one item. Lower it for long lists so
       the reader isn't held on the wheel for pages of scrolling. @default 900 */
   wheelUnits?: number;
+  /** Turn the wheel with the page scroll instead of capturing the wheel: the
+      section gets a scroll runway and the wheel stays pinned on screen while
+      the reader scrolls through it. Works the same with a mouse, a trackpad
+      or a finger. @default false */
+  scrollDriven?: boolean;
+  /** Scroll runway per item in scroll-driven mode, in viewport heights (vh).
+      @default 24 */
+  scrollPerItem?: number;
 }
 
 /* Geometry. The card is measured against the stage; everything else is measured
@@ -140,9 +148,14 @@ export function WorksWheel({
   cardSize = CARD_H,
   showIndex = true,
   wheelUnits = WHEEL_UNITS,
+  scrollDriven = false,
+  scrollPerItem = 24,
   className,
+  style,
   ...props
 }: WorksWheelProps) {
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const pinRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
   const wheelRef = React.useRef<HTMLDivElement>(null);
   const cardRefs = React.useRef<(HTMLElement | null)[]>([]);
@@ -323,7 +336,7 @@ export function WorksWheel({
   // either end instead of trapping the reader.
   React.useEffect(() => {
     const el = stageRef.current;
-    if (!el) return;
+    if (!el || scrollDriven) return;
     const onWheel = (event: WheelEvent) => {
       const next = target.current + event.deltaY / wheelUnits;
       if (next > 0 && next < last + 1) event.preventDefault();
@@ -343,231 +356,290 @@ export function WorksWheel({
       el.removeEventListener("wheel", onWheel);
       window.clearTimeout(settling.current);
     };
-  }, [to, last, wheelUnits]);
+  }, [to, last, wheelUnits, scrollDriven]);
+
+  // Scroll-driven: the wheel's position is how far the reader has scrolled
+  // through the section's runway, and settles on an item once scrolling stops.
+  const runway = React.useCallback(() => {
+    const el = sectionRef.current;
+    const pin = pinRef.current;
+    if (!el || !pin) return null;
+    const rect = el.getBoundingClientRect();
+    return { rect, length: Math.max(1, rect.height - pin.clientHeight) };
+  }, []);
+
+  React.useEffect(() => {
+    if (!scrollDriven) return;
+    const read = () => {
+      const run = runway();
+      if (!run) return;
+      to(clamp(-run.rect.top / run.length, 0, 1) * (last + 1));
+      window.clearTimeout(settling.current);
+      settling.current = window.setTimeout(
+        () => to(Math.round(target.current)),
+        SETTLE,
+      );
+    };
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      window.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+      window.clearTimeout(settling.current);
+    };
+  }, [scrollDriven, runway, to, last]);
+
+  /** Bring item `n` (0 = the ring) to the front: by turning the wheel, or in
+      scroll-driven mode by scrolling the page to where it sits. */
+  const go = (n: number) => {
+    const next = clamp(n, 0, last + 1);
+    const run = scrollDriven ? runway() : null;
+    if (!run) return to(next);
+    window.scrollTo({
+      top: window.scrollY + run.rect.top + (next / (last + 1)) * run.length,
+      behavior: reduced ? "auto" : "smooth",
+    });
+  };
 
   // From the ring, a step forward opens the drum on the first item.
-  const step = (by: number) =>
-    to(Math.max(1, Math.round(target.current) + by));
+  const step = (by: number) => go(Math.max(1, Math.round(target.current) + by));
 
   return (
     <section
+      ref={sectionRef}
       aria-label={label}
       className={cn(
         "works-wheel",
+        scrollDriven && "is-scroll-driven",
         className,
       )}
+      style={
+        scrollDriven
+          ? { height: `${100 + (last + 1) * scrollPerItem}vh`, ...style }
+          : style
+      }
       {...props}
     >
-      <div
-        ref={stageRef}
-        tabIndex={0}
-        role="listbox"
-        aria-label={label}
-        aria-activedescendant={`works-wheel-${active}`}
-        // Touch turns the wheel with a sideways swipe so an up/down swipe
-        // still scrolls the page; a mouse drags up and down.
-        className="works-wheel-stage"
-        style={{
-          perspective: `${metrics.depth}px`,
-          WebkitPerspective: `${metrics.depth}px`,
-          perspectiveOrigin: `50% ${narrow ? NARROW_CENTER * 100 : 50}%`,
-        }}
-        onPointerDown={(event) => {
-          drag.current = { x: event.clientX, y: event.clientY, moved: false };
-          dragged.current = false;
-        }}
-        onPointerMove={(event) => {
-          const start = drag.current;
-          if (!start) return;
-          const touch = event.pointerType === "touch";
-          const delta = touch
-            ? start.x - event.clientX
-            : start.y - event.clientY;
-          if (!start.moved) {
-            if (Math.abs(delta) < DRAG_SLOP) return;
-            // Capture only once it is a drag, so a plain click still reaches
-            // the card's link.
-            start.moved = true;
-            dragged.current = true;
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }
-          to(target.current + delta / DRAG_UNITS);
-          drag.current = { x: event.clientX, y: event.clientY, moved: true };
-        }}
-        onPointerUp={() => {
-          // Land on an item rather than between two.
-          drag.current = null;
-          if (target.current > 1) to(Math.round(target.current));
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-        }}
-        onClickCapture={(event) => {
-          // The press that ends a drag is not a click on whatever it ends over.
-          if (dragged.current) {
-            event.preventDefault();
-            event.stopPropagation();
-            dragged.current = false;
-          }
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") to(Math.round(target.current) + 1);
-          else if (event.key === "ArrowUp") to(Math.round(target.current) - 1);
-          else return;
-          event.preventDefault();
-        }}
-      >
+      <div ref={pinRef} className="works-wheel-pin">
         <div
-          ref={wheelRef}
-          className="works-wheel-drum"
+          ref={stageRef}
+          tabIndex={0}
+          role="listbox"
+          aria-label={label}
+          aria-activedescendant={`works-wheel-${active}`}
+          // Touch turns the wheel with a sideways swipe so an up/down swipe
+          // still scrolls the page; a mouse drags up and down.
+          className="works-wheel-stage"
           style={{
-            top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
-            WebkitTransformStyle: "preserve-3d",
+            perspective: `${metrics.depth}px`,
+            WebkitPerspective: `${metrics.depth}px`,
+            perspectiveOrigin: `50% ${narrow ? NARROW_CENTER * 100 : 50}%`,
+          }}
+          onPointerDown={(event) => {
+            // Scroll-driven: the page scroll turns the wheel, a press is a press.
+            if (scrollDriven) return;
+            drag.current = { x: event.clientX, y: event.clientY, moved: false };
+            dragged.current = false;
+          }}
+          onPointerMove={(event) => {
+            const start = drag.current;
+            if (!start) return;
+            const touch = event.pointerType === "touch";
+            const delta = touch
+              ? start.x - event.clientX
+              : start.y - event.clientY;
+            if (!start.moved) {
+              if (Math.abs(delta) < DRAG_SLOP) return;
+              // Capture only once it is a drag, so a plain click still reaches
+              // the card's link.
+              start.moved = true;
+              dragged.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }
+            to(target.current + delta / DRAG_UNITS);
+            drag.current = { x: event.clientX, y: event.clientY, moved: true };
+          }}
+          onPointerUp={() => {
+            // Land on an item rather than between two.
+            drag.current = null;
+            if (target.current > 1) to(Math.round(target.current));
+          }}
+          onPointerCancel={() => {
+            drag.current = null;
+          }}
+          onClickCapture={(event) => {
+            // The press that ends a drag is not a click on whatever it ends over.
+            if (dragged.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              dragged.current = false;
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") go(Math.round(target.current) + 1);
+            else if (event.key === "ArrowUp")
+              go(Math.round(target.current) - 1);
+            else return;
+            event.preventDefault();
           }}
         >
-          {items.map((item, i) => {
-            const Tag = (item.href ? "a" : "div") as "a";
-            const zoom = item.imageZoom ?? 1;
-            return (
-              <React.Fragment key={i}>
-                <Tag
-                  id={`works-wheel-${i}`}
-                  role="option"
-                  aria-selected={i === active}
-                  href={item.href}
-                  draggable={false}
-                  ref={(node: HTMLElement | null) => {
-                    cardRefs.current[i] = node;
-                  }}
-                  className="works-wheel-card"
-                  style={{
-                    width: metrics.cardW,
-                    height: metrics.cardH,
-                    marginLeft: -metrics.cardW / 2,
-                    marginTop: -metrics.cardH / 2,
-                  }}
-                >
-                  <span className="works-wheel-face">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      draggable={false}
-                      className="works-wheel-art"
-                      style={{
-                        objectPosition: item.imagePosition,
-                        transformOrigin: item.imagePosition,
-                        transform: zoom === 1 ? undefined : `scale(${zoom})`,
-                      }}
-                    />
-                    {action && item.href ? (
-                      <span className="works-wheel-action">
-                        <svg
-                          viewBox="0 0 12 12"
-                          className="works-wheel-icon-sm"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 9 9 3M4 3h5v5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.4"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        {action}
-                      </span>
-                    ) : null}
-                  </span>
-                </Tag>
-              </React.Fragment>
-            );
-          })}
+          <div
+            ref={wheelRef}
+            className="works-wheel-drum"
+            style={{
+              top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
+              WebkitTransformStyle: "preserve-3d",
+            }}
+          >
+            {items.map((item, i) => {
+              const Tag = (item.href ? "a" : "div") as "a";
+              const zoom = item.imageZoom ?? 1;
+              return (
+                <React.Fragment key={i}>
+                  <Tag
+                    id={`works-wheel-${i}`}
+                    role="option"
+                    aria-selected={i === active}
+                    href={item.href}
+                    draggable={false}
+                    ref={(node: HTMLElement | null) => {
+                      cardRefs.current[i] = node;
+                    }}
+                    className="works-wheel-card"
+                    style={{
+                      width: metrics.cardW,
+                      height: metrics.cardH,
+                      marginLeft: -metrics.cardW / 2,
+                      marginTop: -metrics.cardH / 2,
+                    }}
+                  >
+                    <span className="works-wheel-face">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        draggable={false}
+                        className="works-wheel-art"
+                        style={{
+                          objectPosition: item.imagePosition,
+                          transformOrigin: item.imagePosition,
+                          transform: zoom === 1 ? undefined : `scale(${zoom})`,
+                        }}
+                      />
+                      {action && item.href ? (
+                        <span className="works-wheel-action">
+                          <svg
+                            viewBox="0 0 12 12"
+                            className="works-wheel-icon-sm"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M3 9 9 3M4 3h5v5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          {action}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Tag>
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Ring title and front-card title trade places across the transition.
+        {/* Ring title and front-card title trade places across the transition.
           Type is sized off the measured stage, not vh, so the wheel keeps
           its proportions inside a card as well as at full bleed. */}
-      <div
-        ref={labelRef}
-        className="works-wheel-label"
-        style={{
-          fontSize: metrics.title,
-          top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
-          transform: "translateY(-50%)",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        ref={titleRef}
-        aria-live="polite"
-        className={cn(
-          "works-wheel-caption",
-          narrow ? "is-narrow" : "is-wide",
-        )}
-      >
-        <div className="works-wheel-title" style={{ fontSize: metrics.title }}>
-          {items[active]?.title}
-        </div>
-        {items[active]?.details}
-      </div>
-
-      {narrow ? (
-        // Narrow stages swap the index for arrows either side of the card.
         <div
+          ref={labelRef}
+          className="works-wheel-label"
+          style={{
+            fontSize: metrics.title,
+            top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
+            transform: "translateY(-50%)",
+          }}
+        >
+          {label}
+        </div>
+        <div
+          ref={titleRef}
+          aria-live="polite"
           className={cn(
-            "works-wheel-arrows",
+            "works-wheel-caption",
             narrow ? "is-narrow" : "is-wide",
           )}
-          style={narrow ? { top: `${NARROW_CENTER * 100}%` } : undefined}
         >
-          {[
-            [-1, previousLabel, "M8 3 4 7l4 4"],
-            [1, nextLabel, "M5 3l4 4-4 4"],
-          ].map(([by, name, path]) => (
-            <button
-              key={name}
-              type="button"
-              aria-label={String(name)}
-              onClick={() => step(Number(by))}
-              className="works-wheel-arrow"
-            >
-              <svg viewBox="0 0 14 14" className="works-wheel-icon" aria-hidden="true">
-                <path
-                  d={String(path)}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          ))}
+          <div
+            className="works-wheel-title"
+            style={{ fontSize: metrics.title }}
+          >
+            {items[active]?.title}
+          </div>
+          {items[active]?.details}
         </div>
-      ) : showIndex ? (
-        <ol
-          className="works-wheel-index"
-          style={{ fontSize: metrics.index }}
-        >
-          {items.map((item, i) => (
-            <li key={i}>
+
+        {narrow ? (
+          // Narrow stages swap the index for arrows either side of the card.
+          <div
+            className={cn(
+              "works-wheel-arrows",
+              narrow ? "is-narrow" : "is-wide",
+            )}
+            style={narrow ? { top: `${NARROW_CENTER * 100}%` } : undefined}
+          >
+            {[
+              [-1, previousLabel, "M8 3 4 7l4 4"],
+              [1, nextLabel, "M5 3l4 4-4 4"],
+            ].map(([by, name, path]) => (
               <button
+                key={name}
                 type="button"
-                onClick={() => to(i + 1)}
-                className={cn(
-                  "works-wheel-index-item",
-                  i === active && "is-active",
-                )}
+                aria-label={String(name)}
+                onClick={() => step(Number(by))}
+                className="works-wheel-arrow"
               >
-                {item.title}
+                <svg
+                  viewBox="0 0 14 14"
+                  className="works-wheel-icon"
+                  aria-hidden="true"
+                >
+                  <path
+                    d={String(path)}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
-            </li>
-          ))}
-        </ol>
-      ) : null}
+            ))}
+          </div>
+        ) : showIndex ? (
+          <ol className="works-wheel-index" style={{ fontSize: metrics.index }}>
+            {items.map((item, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => go(i + 1)}
+                  className={cn(
+                    "works-wheel-index-item",
+                    i === active && "is-active",
+                  )}
+                >
+                  {item.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </div>
     </section>
   );
 }
