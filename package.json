@@ -16,6 +16,7 @@
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.116.0",
     "ai": "^7.0.79",
+    "clsx": "^2.1.1",
     "drizzle-orm": "0.45.2",
     "next": "^16.3.5",
     "pdf-lib": "^1.17.1",
@@ -24,6 +25,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "stripe": "^22.6.2",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
