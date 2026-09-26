@@ -69,7 +69,7 @@ export function BookWheel({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
     <section className="premium-books book-wheel-section">
       <div className="section-heading"><p className="eyebrow">{t.eyebrow}</p><h2>{t.heading}</h2><p className="book-wheel-hint">{t.hint}</p></div>
       <div className="book-wheel-stage">
-        <WorksWheel items={items} label={t.label} action={t.action} previousLabel={t.previous} nextLabel={t.next} aria-label={t.eyebrow} cardSize={0.24} showIndex={false} wheelUnits={340} />
+        <WorksWheel items={items} label={t.label} action={t.action} previousLabel={t.previous} nextLabel={t.next} aria-label={t.eyebrow} cardSize={0.2} className="bg-transparent" showIndex={false} wheelUnits={340} />
       </div>
     </section>
   );

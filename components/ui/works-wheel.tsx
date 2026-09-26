@@ -150,7 +150,9 @@ export function WorksWheel({
   const turn = React.useRef(0);
   const target = React.useRef(0);
   const [active, setActive] = React.useState(0);
-  const [stage, setStage] = React.useState<Stage>({ w: 0, h: 0 });
+  // A guess until the stage is measured, so the server render and the first
+  // paint already show the ring instead of zero-sized cards.
+  const [stage, setStage] = React.useState<Stage>({ w: 1200, h: 800 });
 
   const count = items.length;
   const last = Math.max(count - 1, 0);
@@ -171,7 +173,10 @@ export function WorksWheel({
   React.useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    const read = () => setStage({ w: el.clientWidth, h: el.clientHeight });
+    const read = () => {
+      if (el.clientWidth && el.clientHeight)
+        setStage({ w: el.clientWidth, h: el.clientHeight });
+    };
     read();
     const ro = new ResizeObserver(read);
     ro.observe(el);
@@ -349,6 +354,7 @@ export function WorksWheel({
         className="focus-visible:outline-foreground absolute inset-0 cursor-grab touch-pan-y outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 active:cursor-grabbing"
         style={{
           perspective: `${metrics.depth}px`,
+          WebkitPerspective: `${metrics.depth}px`,
           perspectiveOrigin: `50% ${narrow ? NARROW_CENTER * 100 : 50}%`,
         }}
         onPointerDown={(event) => {
@@ -399,7 +405,10 @@ export function WorksWheel({
         <div
           ref={wheelRef}
           className="absolute left-1/2 [transform-style:preserve-3d]"
-          style={{ top: narrow ? `${NARROW_CENTER * 100}%` : "50%" }}
+          style={{
+            top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
+            WebkitTransformStyle: "preserve-3d",
+          }}
         >
           {items.map((item, i) => {
             const Tag = (item.href ? "a" : "div") as "a";
@@ -415,7 +424,7 @@ export function WorksWheel({
                   ref={(node: HTMLElement | null) => {
                     cardRefs.current[i] = node;
                   }}
-                  className="group absolute [backface-visibility:hidden]"
+                  className="group absolute"
                   style={{
                     width: metrics.cardW,
                     height: metrics.cardH,
