@@ -1,6 +1,8 @@
 import { WorksWheel, type WorksWheelItem } from '@/components/ui/works-wheel';
 import Link from './SafeLink';
 
+const LAPS = 4;
+
 type Book = { name: string; title: string; text: string; price: string; focus: string };
 
 const copy = {
@@ -44,7 +46,9 @@ const copy = {
 
 export function BookWheel({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
   const t = copy[locale];
-  const items: WorksWheelItem[] = t.books.map((book, index) => ({
+  // The three books go round the wheel four times, so the ring closes into a
+  // full circle and the drum has enough to turn. Every card keeps its offer.
+  const items: WorksWheelItem[] = Array.from({ length: LAPS }, () => t.books).flat().map((book, i) => ({
     title: book.name,
     image: '/memory-book-collection-v2.jpg',
     imagePosition: book.focus,
@@ -52,7 +56,7 @@ export function BookWheel({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
     href: t.href,
     details: (
       <div className="book-wheel-details">
-        {index === 1 ? <span className="book-wheel-popular">{t.popular}</span> : null}
+        {i % t.books.length === 1 ? <span className="book-wheel-popular">{t.popular}</span> : null}
         <h3>{book.title}</h3>
         <p>{book.text}</p>
         <b>{t.price(book.price)}</b>
@@ -65,7 +69,7 @@ export function BookWheel({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
     <section className="premium-books book-wheel-section">
       <div className="section-heading"><p className="eyebrow">{t.eyebrow}</p><h2>{t.heading}</h2><p className="book-wheel-hint">{t.hint}</p></div>
       <div className="book-wheel-stage">
-        <WorksWheel items={items} label={t.label} action={t.action} previousLabel={t.previous} nextLabel={t.next} aria-label={t.eyebrow} />
+        <WorksWheel items={items} label={t.label} action={t.action} previousLabel={t.previous} nextLabel={t.next} aria-label={t.eyebrow} cardSize={0.24} showIndex={false} wheelUnits={340} />
       </div>
     </section>
   );

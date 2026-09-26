@@ -42,6 +42,14 @@ export interface WorksWheelProps extends Omit<
   /** Accessible labels for the previous / next buttons shown on narrow stages. */
   previousLabel?: string;
   nextLabel?: string;
+  /** Front card height, as a fraction of the stage. Smaller leaves more of the
+      drum in view. @default 0.38 */
+  cardSize?: number;
+  /** Show the list of titles down the right-hand side. @default true */
+  showIndex?: boolean;
+  /** Wheel delta that turns the wheel by one item. Lower it for long lists so
+      the reader isn't held on the wheel for pages of scrolling. @default 900 */
+  wheelUnits?: number;
 }
 
 /* Geometry. The card is measured against the stage; everything else is measured
@@ -125,6 +133,9 @@ export function WorksWheel({
   action = "View",
   previousLabel = "Previous",
   nextLabel = "Next",
+  cardSize = CARD_H,
+  showIndex = true,
+  wheelUnits = WHEEL_UNITS,
   className,
   ...props
 }: WorksWheelProps) {
@@ -169,9 +180,11 @@ export function WorksWheel({
 
   const metrics = React.useMemo(() => {
     const { w, h } = stage;
+    // A smaller card keeps the same proportions against the stage width.
+    const size = cardSize / CARD_H;
     const cardW = Math.min(
-      h * CARD_H * CARD_RATIO,
-      w * (narrow ? NARROW_CARD_MAX_W : CARD_MAX_W),
+      h * cardSize * CARD_RATIO,
+      w * (narrow ? NARROW_CARD_MAX_W : CARD_MAX_W) * size,
     );
     const cardH = cardW / CARD_RATIO;
     const drumR = cardH * DRUM;
@@ -202,7 +215,7 @@ export function WorksWheel({
       title: cardH * TITLE,
       index: cardH * INDEX,
     };
-  }, [stage, count, narrow]);
+  }, [stage, count, narrow, cardSize]);
 
   // One pass per frame: ease toward the target, then write every transform.
   React.useEffect(() => {
@@ -249,7 +262,7 @@ export function WorksWheel({
             m > 0.5 && Math.abs(d) > CULL
               ? "0"
               : narrow
-                ? String(lerp(1, clamp(1.3 - Math.abs(d) * 1.3, 0, 1), m))
+                ? String(lerp(1, clamp(2 - Math.abs(d) * 1.25, 0, 1), m))
                 : "1";
           card.style.zIndex = String(Math.round(100 - Math.abs(d) * 2));
         }
@@ -292,7 +305,7 @@ export function WorksWheel({
     const el = stageRef.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
-      const next = target.current + event.deltaY / WHEEL_UNITS;
+      const next = target.current + event.deltaY / wheelUnits;
       if (next > 0 && next < last + 1) event.preventDefault();
       to(next);
       // A wheel gesture arrives as a burst of events with no end of its own, so
@@ -310,7 +323,7 @@ export function WorksWheel({
       el.removeEventListener("wheel", onWheel);
       window.clearTimeout(settling.current);
     };
-  }, [to, last]);
+  }, [to, last, wheelUnits]);
 
   // From the ring, a step forward opens the drum on the first item.
   const step = (by: number) =>
@@ -392,7 +405,7 @@ export function WorksWheel({
             const Tag = (item.href ? "a" : "div") as "a";
             const zoom = item.imageZoom ?? 1;
             return (
-              <React.Fragment key={item.title}>
+              <React.Fragment key={i}>
                 <Tag
                   id={`works-wheel-${i}`}
                   role="option"
@@ -479,8 +492,18 @@ export function WorksWheel({
         {items[active]?.details}
       </div>
 
-      {narrow ? (
-        <div className="absolute top-[3%] right-[4%] flex gap-2">
+      {narrow || !showIndex ? (
+        // Narrow: either side of the front card. Otherwise: bottom right,
+        // clear of anything that sits over the top of the stage.
+        <div
+          className={cn(
+            "pointer-events-none absolute flex",
+            narrow
+              ? "inset-x-[3%] -translate-y-1/2 justify-between"
+              : "right-[3%] bottom-[5%] gap-2",
+          )}
+          style={narrow ? { top: `${NARROW_CENTER * 100}%` } : undefined}
+        >
           {[
             [-1, previousLabel, "M8 3 4 7l4 4"],
             [1, nextLabel, "M5 3l4 4-4 4"],
@@ -490,7 +513,7 @@ export function WorksWheel({
               type="button"
               aria-label={String(name)}
               onClick={() => step(Number(by))}
-              className="border-foreground/15 bg-background/80 text-foreground grid size-10 cursor-pointer place-items-center rounded-full border backdrop-blur-sm"
+              className="border-foreground/15 bg-background/80 text-foreground pointer-events-auto grid size-10 cursor-pointer place-items-center rounded-full border backdrop-blur-sm"
             >
               <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden="true">
                 <path
@@ -511,7 +534,7 @@ export function WorksWheel({
           style={{ fontSize: metrics.index }}
         >
           {items.map((item, i) => (
-            <li key={item.title}>
+            <li key={i}>
               <button
                 type="button"
                 onClick={() => to(i + 1)}
