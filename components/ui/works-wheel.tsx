@@ -514,9 +514,8 @@ export function WorksWheel({
         {items[active]?.details}
       </div>
 
-      {narrow || !showIndex ? (
-        // Narrow: either side of the front card. Otherwise: bottom right,
-        // clear of anything that sits over the top of the stage.
+      {narrow ? (
+        // Narrow stages swap the index for arrows either side of the card.
         <div
           className={cn(
             "works-wheel-arrows",
@@ -548,7 +547,7 @@ export function WorksWheel({
             </button>
           ))}
         </div>
-      ) : (
+      ) : showIndex ? (
         <ol
           className="works-wheel-index"
           style={{ fontSize: metrics.index }}
@@ -568,7 +567,7 @@ export function WorksWheel({
             </li>
           ))}
         </ol>
-      )}
+      ) : null}
     </section>
   );
 }
