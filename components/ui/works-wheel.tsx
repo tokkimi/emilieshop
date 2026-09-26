@@ -15,6 +15,10 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+// Plain CSS rather than Tailwind utilities: the production build (Next.js on
+// Vercel) does not run Tailwind, so utility classes would ship unstyled.
+import "./works-wheel.css";
+
 export interface WorksWheelItem {
   /** Project name. Shown beside the front card and in the index. */
   title: string;
@@ -218,7 +222,8 @@ export function WorksWheel({
       bow: cardH * BOW,
       depth: cardH * LENS,
       title: cardH * TITLE,
-      index: cardH * INDEX,
+      // Never smaller than legible, however small the stage.
+      index: Math.max(11, cardH * INDEX),
     };
   }, [stage, count, narrow, cardSize]);
 
@@ -267,7 +272,17 @@ export function WorksWheel({
             m > 0.5 && Math.abs(d) > CULL
               ? "0"
               : narrow
-                ? String(lerp(1, clamp(2 - Math.abs(d) * 1.25, 0, 1), m))
+                ? String(
+                    lerp(
+                      1,
+                      // Items already turned past (d < 0) rotate down, into
+                      // the text under the card.
+                      d < 0
+                        ? clamp(1 + d * 1.6, 0, 1)
+                        : clamp(2 - Math.abs(d) * 1.25, 0, 1),
+                      m,
+                    ),
+                  )
                 : "1";
           card.style.zIndex = String(Math.round(100 - Math.abs(d) * 2));
         }
@@ -338,7 +353,7 @@ export function WorksWheel({
     <section
       aria-label={label}
       className={cn(
-        "bg-background text-foreground relative h-full min-h-[24rem] w-full overflow-hidden select-none",
+        "works-wheel",
         className,
       )}
       {...props}
@@ -351,7 +366,7 @@ export function WorksWheel({
         aria-activedescendant={`works-wheel-${active}`}
         // Touch turns the wheel with a sideways swipe so an up/down swipe
         // still scrolls the page; a mouse drags up and down.
-        className="focus-visible:outline-foreground absolute inset-0 cursor-grab touch-pan-y outline-none focus-visible:outline-2 focus-visible:-outline-offset-4 active:cursor-grabbing"
+        className="works-wheel-stage"
         style={{
           perspective: `${metrics.depth}px`,
           WebkitPerspective: `${metrics.depth}px`,
@@ -404,7 +419,7 @@ export function WorksWheel({
       >
         <div
           ref={wheelRef}
-          className="absolute left-1/2 [transform-style:preserve-3d]"
+          className="works-wheel-drum"
           style={{
             top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
             WebkitTransformStyle: "preserve-3d",
@@ -424,7 +439,7 @@ export function WorksWheel({
                   ref={(node: HTMLElement | null) => {
                     cardRefs.current[i] = node;
                   }}
-                  className="group absolute"
+                  className="works-wheel-card"
                   style={{
                     width: metrics.cardW,
                     height: metrics.cardH,
@@ -432,12 +447,12 @@ export function WorksWheel({
                     marginTop: -metrics.cardH / 2,
                   }}
                 >
-                  <span className="bg-muted shadow-foreground/12 relative block size-full overflow-hidden rounded-lg shadow-[0_18px_40px_-18px_var(--tw-shadow-color)]">
+                  <span className="works-wheel-face">
                     <img
                       src={item.image}
                       alt={item.title}
                       draggable={false}
-                      className="size-full object-cover"
+                      className="works-wheel-art"
                       style={{
                         objectPosition: item.imagePosition,
                         transformOrigin: item.imagePosition,
@@ -445,10 +460,10 @@ export function WorksWheel({
                       }}
                     />
                     {action && item.href ? (
-                      <span className="bg-background/80 text-foreground pointer-events-none absolute right-3 bottom-3 flex translate-y-1 items-center gap-1 rounded-full px-2.5 py-1 text-[0.7rem] opacity-0 backdrop-blur-sm transition group-hover:translate-y-0 group-hover:opacity-100">
+                      <span className="works-wheel-action">
                         <svg
                           viewBox="0 0 12 12"
-                          className="size-2.5"
+                          className="works-wheel-icon-sm"
                           aria-hidden="true"
                         >
                           <path
@@ -476,7 +491,7 @@ export function WorksWheel({
           its proportions inside a card as well as at full bleed. */}
       <div
         ref={labelRef}
-        className="pointer-events-none absolute inset-x-0 grid place-items-center tracking-tight"
+        className="works-wheel-label"
         style={{
           fontSize: metrics.title,
           top: narrow ? `${NARROW_CENTER * 100}%` : "50%",
@@ -489,13 +504,11 @@ export function WorksWheel({
         ref={titleRef}
         aria-live="polite"
         className={cn(
-          "pointer-events-none invisible absolute opacity-0",
-          narrow
-            ? "inset-x-[6%] bottom-[5%] text-center"
-            : "top-1/2 left-[6%] w-[24%] -translate-y-1/2",
+          "works-wheel-caption",
+          narrow ? "is-narrow" : "is-wide",
         )}
       >
-        <div className="tracking-tight" style={{ fontSize: metrics.title }}>
+        <div className="works-wheel-title" style={{ fontSize: metrics.title }}>
           {items[active]?.title}
         </div>
         {items[active]?.details}
@@ -506,10 +519,8 @@ export function WorksWheel({
         // clear of anything that sits over the top of the stage.
         <div
           className={cn(
-            "pointer-events-none absolute flex",
-            narrow
-              ? "inset-x-[3%] -translate-y-1/2 justify-between"
-              : "right-[3%] bottom-[5%] gap-2",
+            "works-wheel-arrows",
+            narrow ? "is-narrow" : "is-wide",
           )}
           style={narrow ? { top: `${NARROW_CENTER * 100}%` } : undefined}
         >
@@ -522,9 +533,9 @@ export function WorksWheel({
               type="button"
               aria-label={String(name)}
               onClick={() => step(Number(by))}
-              className="border-foreground/15 bg-background/80 text-foreground pointer-events-auto grid size-10 cursor-pointer place-items-center rounded-full border backdrop-blur-sm"
+              className="works-wheel-arrow"
             >
-              <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden="true">
+              <svg viewBox="0 0 14 14" className="works-wheel-icon" aria-hidden="true">
                 <path
                   d={String(path)}
                   fill="none"
@@ -539,7 +550,7 @@ export function WorksWheel({
         </div>
       ) : (
         <ol
-          className="text-muted-foreground absolute top-[7.5%] right-[2.5%] text-right leading-[1.75]"
+          className="works-wheel-index"
           style={{ fontSize: metrics.index }}
         >
           {items.map((item, i) => (
@@ -548,8 +559,8 @@ export function WorksWheel({
                 type="button"
                 onClick={() => to(i + 1)}
                 className={cn(
-                  "focus-visible:outline-foreground cursor-pointer transition-colors outline-none focus-visible:outline-1",
-                  i === active && "text-foreground font-medium",
+                  "works-wheel-index-item",
+                  i === active && "is-active",
                 )}
               >
                 {item.title}
