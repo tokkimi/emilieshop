@@ -23,11 +23,38 @@ function newPassword() {
   return Array.from(randomBytes(16), (byte) => alphabet[byte % alphabet.length]).join('');
 }
 
+function within<T>(promise: PromiseLike<T>, ms = 8000): Promise<T | { timeout: true }> {
+  return Promise.race([Promise.resolve(promise), new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), ms))]);
+}
+
 export async function GET(request: Request) {
   if (!authorized(new URL(request.url).searchParams.get('token'))) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const db = createSupabaseAdminClient();
   const config = getSupabasePublicConfig();
   if (!db || !config) return NextResponse.json({ error: 'Supabase admin client not configured', hasPublicConfig: Boolean(config) }, { status: 503 });
+
+  if (new URL(request.url).searchParams.get('diagnose') === '1') {
+    const secret = process.env.SUPABASE_SECRET_KEY || '';
+    const publicClient = createClient(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const [users, table, publicTable, settings] = await Promise.all([
+      within(db.auth.admin.listUsers({ page: 1, perPage: 1 }).then(({ data, error }) => ({ count: data?.users.length ?? null, error: error ? { message: error.message, status: (error as { status?: number }).status ?? null, code: (error as { code?: string }).code ?? null } : null }))),
+      within(db.from('profiles').select('id', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error?.message || null }))),
+      within(publicClient.from('accounting_accounts').select('code', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error?.message || null }))),
+      within(fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } }).then(async (response) => ({ status: response.status, body: await response.text().then((text) => text.slice(0, 600)) }))),
+    ]);
+    return NextResponse.json(
+      {
+        supabaseUrl: config.url,
+        secretKeyShape: secret ? `${secret.slice(0, 8)}… (${secret.length} caractères)` : 'absente',
+        publishableKeyShape: `${config.publishableKey.slice(0, 15)}… (${config.publishableKey.length} caractères)`,
+        users,
+        table,
+        publicTable,
+        settings,
+      },
+      { headers: { 'cache-control': 'no-store' } },
+    );
+  }
 
   // Auth settings as the browser sees them (captcha, disabled email login…).
   const settings = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } })
