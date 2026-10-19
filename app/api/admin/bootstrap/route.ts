@@ -27,7 +27,26 @@ function within<T>(promise: PromiseLike<T>, ms = 8000): Promise<T | { timeout: t
   return Promise.race([Promise.resolve(promise), new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), ms))]);
 }
 
+async function safe<T>(label: string, run: () => PromiseLike<T>, ms = 8000) {
+  try {
+    const value = await within(run(), ms);
+    return { label, value };
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return { label, error: `${err?.name || 'Error'}: ${err?.message || String(error)}`, status: err?.status ?? null, code: err?.code ?? null };
+  }
+}
+
 export async function GET(request: Request) {
+  try {
+    return await handle(request);
+  } catch (error) {
+    const err = error as Error;
+    return NextResponse.json({ crash: `${err?.name}: ${err?.message}`, stack: String(err?.stack || '').split('\n').slice(0, 6) }, { status: 500 });
+  }
+}
+
+async function handle(request: Request) {
   if (!authorized(new URL(request.url).searchParams.get('token'))) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const db = createSupabaseAdminClient();
   const config = getSupabasePublicConfig();
@@ -37,10 +56,10 @@ export async function GET(request: Request) {
     const secret = process.env.SUPABASE_SECRET_KEY || '';
     const publicClient = createClient(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const [users, table, publicTable, settings] = await Promise.all([
-      within(db.auth.admin.listUsers({ page: 1, perPage: 1 }).then(({ data, error }) => ({ count: data?.users.length ?? null, error: error ? { message: error.message, status: (error as { status?: number }).status ?? null, code: (error as { code?: string }).code ?? null } : null }))),
-      within(db.from('profiles').select('id', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error?.message || null }))),
-      within(publicClient.from('accounting_accounts').select('code', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error?.message || null }))),
-      within(fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } }).then(async (response) => ({ status: response.status, body: await response.text().then((text) => text.slice(0, 600)) }))),
+      safe('listUsers', () => db.auth.admin.listUsers({ page: 1, perPage: 1 }).then(({ data, error }) => ({ count: data?.users.length ?? null, error: error ? { message: error.message, status: (error as { status?: number }).status ?? null, code: (error as { code?: string }).code ?? null } : null }))),
+      safe('profiles (clé serveur)', () => db.from('profiles').select('id', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error ? `${error.code}: ${error.message}` : null }))),
+      safe('table publique (clé publique)', () => publicClient.from('accounting_accounts').select('code', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error ? `${error.code}: ${error.message}` : null }))),
+      safe('auth settings', () => fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } }).then(async (response) => ({ status: response.status, body: (await response.text()).slice(0, 600) }))),
     ]);
     return NextResponse.json(
       {
