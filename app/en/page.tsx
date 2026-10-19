@@ -1,9 +1,16 @@
+import type { Metadata } from 'next';
 import Link from '../components/SafeLink';
+import { seoMetadata } from '../../lib/seo';
 import { BookWheel } from '../components/BookWheel';
 import { BookShowcase } from '../components/BookShowcase';
 import { SiteFooter, SiteHeader } from '../components/SiteHeader';
 
 const steps = [['01','Tell','Ten gentle questions, in writing or in your own voice.'],['02','Gather','Add the photos, videos and details that make the place unique.'],['03','Discover','Your story takes shape in a complete first proof.'],['04','Approve','Review and edit every page before anything is printed.']];
+
+export const revalidate = 300;
+export function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/en', { alternates: { canonical: '/en', languages: { 'fr-CA': '/', 'en-CA': '/en' } }, openGraph: { locale: 'en_CA' } });
+}
 
 export default function EnglishHome(){return <><SiteHeader locale="en" homeThemes/><main className="home-page">
   <BookShowcase locale="en" />

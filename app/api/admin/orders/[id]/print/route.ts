@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getChatGPTUser } from '../../../../../chatgpt-auth';
-import { isAdminUser } from '../../../../../../lib/admin-auth';
+import { isAdmin } from '../../../../../../lib/admin-auth';
 import { ensureCompleteBook, type GeneratedBook } from '../../../../../../lib/book';
 import { getLuluConfiguration, luluRequest } from '../../../../../../lib/lulu';
 import { buildPrintPdfs } from '../../../../../../lib/print-pdf';
@@ -18,7 +18,7 @@ type Artifact = { id:string; order_id:string; project_id:string; owner_id:string
 
 async function authorize() {
   const user = await getChatGPTUser();
-  return user && isAdminUser(user) ? user : null;
+  return user && (await isAdmin(user)) ? user : null;
 }
 
 function validationStatus(value: unknown) {

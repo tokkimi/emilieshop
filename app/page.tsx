@@ -1,4 +1,6 @@
+import type { Metadata } from 'next';
 import Link from './components/SafeLink';
+import { seoMetadata } from '../lib/seo';
 import { BookWheel } from './components/BookWheel';
 import { BookShowcase } from './components/BookShowcase';
 import { SiteFooter, SiteHeader } from './components/SiteHeader';
@@ -10,6 +12,11 @@ const steps = [
   ['04', 'Validez', 'Relisez et modifiez chaque page avant toute impression.'],
 ];
 
+
+export const revalidate = 300;
+export function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/');
+}
 
 export default function Home() {
   return <><SiteHeader homeThemes /><main className="home-page">

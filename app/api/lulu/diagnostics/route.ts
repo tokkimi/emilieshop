@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getChatGPTUser } from '../../../chatgpt-auth';
-import { isAdminUser } from '../../../../lib/admin-auth';
+import { isAdmin } from '../../../../lib/admin-auth';
 import {
   isTrustedDiagnosticsRequest,
   isTrustedProductionRequest,
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 async function isAuthorized(request: Request): Promise<boolean> {
   if (isTrustedDiagnosticsRequest(request) || isTrustedProductionRequest(request)) return true;
   const user = await getChatGPTUser();
-  return Boolean(user && isAdminUser(user));
+  return Boolean(user && (await isAdmin(user)));
 }
 
 export async function GET(request: Request) {
