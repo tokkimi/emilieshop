@@ -21,7 +21,14 @@ function mapError(message: string, en: boolean): string {
     return en ? 'Password must be at least 8 characters.' : 'Le mot de passe doit comporter au moins 8 caractères.';
   if (m.includes('email not confirmed'))
     return en ? 'Please confirm your email first (check your inbox).' : 'Confirmez d’abord votre courriel (vérifiez votre boîte de réception).';
-  return en ? 'Something went wrong. Please try again.' : 'Une erreur est survenue. Réessayez.';
+  if (m.includes('rate limit') || m.includes('too many') || m.includes('for security purposes'))
+    return en ? 'Too many attempts. Please wait a minute and try again.' : 'Trop de tentatives. Patientez une minute puis réessayez.';
+  if (m.includes('captcha'))
+    return en ? 'Security check failed. Reload the page and try again.' : 'La vérification de sécurité a échoué. Rechargez la page et réessayez.';
+  if (m.includes('failed to fetch') || m.includes('network'))
+    return en ? 'Connection problem. Check your internet and try again.' : 'Problème de connexion. Vérifiez internet puis réessayez.';
+  // Unknown cause: show it, so it can be reported instead of guessed.
+  return (en ? 'Something went wrong. Please try again.' : 'Une erreur est survenue. Réessayez.') + (message ? ` (${message})` : '');
 }
 
 // Mirror the profile upsert done by the auth callback, for the case where a

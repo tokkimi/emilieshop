@@ -2,6 +2,8 @@ import type { ChatGPTUser } from '../app/chatgpt-auth';
 import { createSupabaseAdminClient } from './supabase/server';
 
 const launchOwnerEmail = 'emilie@equipecauvier.com';
+/** Dedicated admin login created for the owner; always has full access. */
+export const SITE_ADMIN_EMAIL = 'admin@memoiremaison.com';
 
 /** site_settings key holding the admin emails added from the dashboard. */
 export const ADMIN_EMAILS_SETTING = 'admin_emails';
@@ -19,7 +21,7 @@ function normalized(user: ChatGPTUser) {
 
 // Propriétaire : ADMIN_EMAILS (fondatrice). Seule à pouvoir gérer les accès admin.
 export function isOwnerUser(user: ChatGPTUser): boolean {
-  return emailList(process.env.ADMIN_EMAILS || launchOwnerEmail).includes(normalized(user));
+  return [...emailList(process.env.ADMIN_EMAILS || launchOwnerEmail), SITE_ADMIN_EMAIL].includes(normalized(user));
 }
 
 // Accès administrateur par variables Vercel : ADMIN_EMAILS (fondatrice) + ADMIN_TEST_EMAILS (comptes de test).

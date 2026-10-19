@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { adminContext, audit, badRequest } from '../../../../lib/admin-api';
-import { ADMIN_EMAILS_SETTING, listDashboardAdminEmails } from '../../../../lib/admin-auth';
+import { ADMIN_EMAILS_SETTING, listDashboardAdminEmails, SITE_ADMIN_EMAIL } from '../../../../lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,7 @@ export async function GET() {
   if (ctx instanceof NextResponse) return ctx;
   return NextResponse.json({
     owner: ctx.owner,
-    owners: envList(process.env.ADMIN_EMAILS || 'emilie@equipecauvier.com'),
+    owners: [...new Set([...envList(process.env.ADMIN_EMAILS || 'emilie@equipecauvier.com'), SITE_ADMIN_EMAIL])],
     testAdmins: envList(process.env.ADMIN_TEST_EMAILS),
     dashboardAdmins: await listDashboardAdminEmails(),
   });

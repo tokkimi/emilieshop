@@ -200,7 +200,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .email-auth-form label{display:flex;flex-direction:column;gap:6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#5b645e}
 .email-auth-form input{height:52px;border:1px solid #d8ddd8;background:#fff;padding:0 14px;font-size:16px;border-radius:4px}
 .email-auth-form input:focus{outline:2px solid var(--sage);outline-offset:1px;border-color:var(--sage)}
-.auth-forgot{align-self:flex-end;border:0;background:transparent;color:#5b645e;font-size:10px;text-decoration:underline;cursor:pointer;padding:0;margin-top:-4px}
+.auth-forgot{align-self:flex-end;border:0;background:transparent;color:#5b645e;font-size:12px;text-decoration:underline;cursor:pointer;padding:8px 2px;margin-top:-8px;position:relative;z-index:1;min-height:32px}
 .auth-primary{width:100%;margin-top:6px}
 .auth-feedback{font-size:11px;line-height:1.5;padding:11px 13px;border-radius:6px;margin:0}
 .auth-feedback.success{background:#e2ede0;color:#3f6b4e;border:1px solid #c7dcc6}
