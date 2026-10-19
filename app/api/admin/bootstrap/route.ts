@@ -1,11 +1,14 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import postgres from 'postgres';
 import { NextResponse } from 'next/server';
 import { SITE_ADMIN_EMAIL } from '../../../../lib/admin-auth';
 import { getSupabasePublicConfig } from '../../../../lib/supabase/config';
 import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
+import { MIGRATIONS } from './migrations';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 // TEMPORARY one-time setup route, removed right after use. Creates the admin
 // and test logins, proves they can sign in, and checks every table the
@@ -23,20 +26,6 @@ function newPassword() {
   return Array.from(randomBytes(16), (byte) => alphabet[byte % alphabet.length]).join('');
 }
 
-function within<T>(promise: PromiseLike<T>, ms = 8000): Promise<T | { timeout: true }> {
-  return Promise.race([Promise.resolve(promise), new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), ms))]);
-}
-
-async function safe<T>(label: string, run: () => PromiseLike<T>, ms = 8000) {
-  try {
-    const value = await within(run(), ms);
-    return { label, value };
-  } catch (error) {
-    const err = error as Error & { status?: number; code?: string };
-    return { label, error: `${err?.name || 'Error'}: ${err?.message || String(error)}`, status: err?.status ?? null, code: err?.code ?? null };
-  }
-}
-
 export async function GET(request: Request) {
   try {
     return await handle(request);
@@ -46,50 +35,49 @@ export async function GET(request: Request) {
   }
 }
 
+/** Applies every migration not yet applied to the connected database. */
+async function installSchema() {
+  const url = process.env.MEMOIRE_POSTGRES_URL_NON_POOLING || process.env.MEMOIRE_POSTGRES_URL;
+  if (!url) return { applied: [] as string[], error: 'MEMOIRE_POSTGRES_URL_NON_POOLING absente' };
+  const sql = postgres(url, { ssl: { rejectUnauthorized: false }, max: 1, prepare: false, connect_timeout: 15, onnotice: () => {} });
+  const applied: string[] = [];
+  try {
+    await sql`create table if not exists public._setup_migrations (name text primary key, applied_at timestamptz not null default now())`;
+    await sql`alter table public._setup_migrations enable row level security`;
+    const done = new Set((await sql<{ name: string }[]>`select name from public._setup_migrations`).map((row) => row.name));
+    for (const migration of MIGRATIONS) {
+      if (done.has(migration.name)) continue;
+      await sql.begin(async (tx) => {
+        await tx.unsafe(migration.sql);
+        await tx`insert into public._setup_migrations (name) values (${migration.name})`;
+      });
+      applied.push(migration.name);
+    }
+    await sql`notify pgrst, 'reload schema'`;
+    return { applied, alreadyApplied: done.size };
+  } catch (error) {
+    return { applied, error: (error as Error).message };
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 async function handle(request: Request) {
   if (!authorized(new URL(request.url).searchParams.get('token'))) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const db = createSupabaseAdminClient();
   const config = getSupabasePublicConfig();
   if (!db || !config) return NextResponse.json({ error: 'Supabase admin client not configured', hasPublicConfig: Boolean(config) }, { status: 503 });
 
-  if (new URL(request.url).searchParams.get('diagnose') === '1') {
-    const secret = process.env.SUPABASE_SECRET_KEY || '';
-    const publicClient = createClient(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const [users, table, publicTable, settings] = await Promise.all([
-      safe('listUsers', () => db.auth.admin.listUsers({ page: 1, perPage: 1 }).then(({ data, error }) => ({ count: data?.users.length ?? null, error: error ? { message: error.message, status: (error as { status?: number }).status ?? null, code: (error as { code?: string }).code ?? null } : null }))),
-      safe('profiles (clé serveur)', () => db.from('profiles').select('id', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error ? `${error.code}: ${error.message}` : null }))),
-      safe('table publique (clé publique)', () => publicClient.from('accounting_accounts').select('code', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error ? `${error.code}: ${error.message}` : null }))),
-      safe('auth settings', () => fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } }).then(async (response) => ({ status: response.status, body: (await response.text()).slice(0, 600) }))),
-    ]);
-    const cause = async (url: string) => {
-      try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        return { url, status: response.status };
-      } catch (error) {
-        const err = error as Error & { cause?: { code?: string; message?: string; hostname?: string } };
-        return { url, error: err.message, causeCode: err.cause?.code ?? null, causeMessage: err.cause?.message ?? null };
-      }
-    };
-    const network = await Promise.all([cause(`${config.url}/auth/v1/health`), cause('https://supabase.com'), cause('https://api.supabase.com')]);
-    return NextResponse.json(
-      {
-        supabaseUrl: config.url,
-        secretKeyShape: secret ? `${secret.slice(0, 8)}… (${secret.length} caractères)` : 'absente',
-        publishableKeyShape: `${config.publishableKey.slice(0, 15)}… (${config.publishableKey.length} caractères)`,
-        users,
-        table,
-        publicTable,
-        settings,
-        network,
-      },
-      { headers: { 'cache-control': 'no-store' } },
-    );
-  }
+  const schema = await installSchema();
+  if (schema.error) return NextResponse.json({ schema }, { status: 500 });
 
   // Auth settings as the browser sees them (captcha, disabled email login…).
   const settings = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } })
     .then(async (response) => ({ status: response.status, body: await response.json().catch(() => null) }))
     .catch((error: Error) => ({ status: 0, body: error.message }));
+
+  // Let PostgREST pick up the new tables before using them.
+  if (schema.applied.length) await new Promise((resolve) => setTimeout(resolve, 3000));
 
   const { data: list, error: listError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
   const accounts: Record<string, unknown>[] = [];
@@ -135,6 +123,7 @@ async function handle(request: Request) {
       listError: listError?.message || null,
       authSettings: settings,
       health,
+      schema,
     },
     { headers: { 'cache-control': 'no-store' } },
   );
