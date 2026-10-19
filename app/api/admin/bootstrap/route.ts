@@ -61,6 +61,16 @@ async function handle(request: Request) {
       safe('table publique (clé publique)', () => publicClient.from('accounting_accounts').select('code', { count: 'exact', head: true }).then(({ count, error }) => ({ count, error: error ? `${error.code}: ${error.message}` : null }))),
       safe('auth settings', () => fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } }).then(async (response) => ({ status: response.status, body: (await response.text()).slice(0, 600) }))),
     ]);
+    const cause = async (url: string) => {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        return { url, status: response.status };
+      } catch (error) {
+        const err = error as Error & { cause?: { code?: string; message?: string; hostname?: string } };
+        return { url, error: err.message, causeCode: err.cause?.code ?? null, causeMessage: err.cause?.message ?? null };
+      }
+    };
+    const network = await Promise.all([cause(`${config.url}/auth/v1/health`), cause('https://supabase.com'), cause('https://api.supabase.com')]);
     return NextResponse.json(
       {
         supabaseUrl: config.url,
@@ -70,6 +80,7 @@ async function handle(request: Request) {
         table,
         publicTable,
         settings,
+        network,
       },
       { headers: { 'cache-control': 'no-store' } },
     );
