@@ -1,8 +1,7 @@
 import Link from './SafeLink';
-import { HomeThemeSelector } from './HomeThemeSelector';
 import { NewsletterForm } from './NewsletterForm';
 
-export function SiteHeader({ compact = false, locale = 'fr', homeThemes = locale === 'en' }: { compact?: boolean; locale?: 'fr' | 'en'; homeThemes?: boolean }) {
+export function SiteHeader({ compact = false, locale = 'fr' }: { compact?: boolean; locale?: 'fr' | 'en' }) {
   const en = locale === 'en';
   return (
     <header className={`site-header ${compact ? 'header-compact' : ''}`}>
@@ -17,7 +16,6 @@ export function SiteHeader({ compact = false, locale = 'fr', homeThemes = locale
         <Link href={en ? '/en/memory/demo' : '/memory/demo'}>Memory Link</Link>
       </nav>
       <div className="header-actions">
-        {homeThemes ? <HomeThemeSelector locale={locale} /> : null}
         <Link className="locale-link" href={en ? '/' : '/en'}>{en ? 'FR' : 'EN'}</Link>
         <Link className="text-link" href={en ? '/en/sign-in' : '/connexion'}>{en ? 'Sign in' : 'Connexion'}</Link>
         <Link className="button button-small" href={en ? '/en/studio' : '/atelier'}>{en ? 'Create my book' : 'Créer mon livre'}</Link>

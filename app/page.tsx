@@ -19,7 +19,7 @@ export function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Home() {
-  return <><SiteHeader homeThemes /><main className="home-page">
+  return <><SiteHeader /><main className="home-page">
     <BookShowcase />
 
     <section className="trust-strip"><p><span>01</span> Vos mots, vos souvenirs</p><p><span>02</span> Une création accompagnée</p><p><span>03</span> Votre validation avant impression</p></section>

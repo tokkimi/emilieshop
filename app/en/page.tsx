@@ -12,7 +12,7 @@ export function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/en', { alternates: { canonical: '/en', languages: { 'fr-CA': '/', 'en-CA': '/en' } }, openGraph: { locale: 'en_CA' } });
 }
 
-export default function EnglishHome(){return <><SiteHeader locale="en" homeThemes/><main className="home-page">
+export default function EnglishHome(){return <><SiteHeader locale="en"/><main className="home-page">
   <BookShowcase locale="en" />
   <section className="trust-strip"><p><span>01</span>Your words, your memories</p><p><span>02</span>A guided creation</p><p><span>03</span>Your approval before print</p></section>
   <section className="premium-process" id="how"><div className="section-heading"><p className="eyebrow">Simple from the first memory</p><h2>You tell it.<br/><em>We compose it.</em></h2><p>Begin in minutes, add memories at your own pace and keep the final word at every step.</p></div><div className="premium-steps">{steps.map(([number,title,text])=><article key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></article>)}</div><Link className="button outline" href="/en/studio">Discover the studio →</Link></section>
