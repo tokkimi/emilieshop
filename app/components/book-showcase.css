@@ -1,5 +1,5 @@
 /* Base: book covers + example dialog */
-.book-showcase{--reveal:1;text-align:center;color:#28332f;background:#faf9f6;padding:100px 24px 80px;overflow:clip}
+.book-showcase{--reveal:1;text-align:center;color:#1c3350;background:#faf9f6;padding:100px 24px 80px;overflow:clip}
 .book-showcase header{max-width:620px;margin:auto}
 .book-showcase h1,.book-showcase h2{margin:20px 0;font-family:Georgia,serif;font-size:clamp(40px,5vw,72px);font-weight:400;line-height:1.08}
 .book-showcase h2 em{font-weight:400}
@@ -19,7 +19,7 @@
 .showcase-browse{letter-spacing:.03em;margin-top:25px;font-size:12px;display:block}
 .showcase-note{color:#777b73;margin:15px 0 25px;font-size:12px}
 .showcase-book:focus-visible,.showcase-dialog button:focus-visible{outline-offset:8px;outline:2px solid #8b6850}
-.showcase-dialog{color:#28332f;background:#faf9f6;border:1px solid #dedbd3;border-radius:8px;width:min(850px,100% - 32px);max-height:90dvh;margin:auto;padding:28px;overflow:auto}
+.showcase-dialog{color:#1c3350;background:#faf9f6;border:1px solid #dedbd3;border-radius:8px;width:min(850px,100% - 32px);max-height:90dvh;margin:auto;padding:28px;overflow:auto}
 .showcase-dialog::backdrop{background:#17251fc7}
 .example-heading{text-align:left;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;display:flex}
 .example-heading h3{margin:8px 0;font:30px Georgia,serif}
