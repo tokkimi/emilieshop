@@ -12,7 +12,7 @@
 .at-btn:disabled{opacity:.5;cursor:default}
 .at-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 .at-kpis article{background:#fff;border:1px solid var(--line);padding:18px}
-.at-kpis p{margin:0 0 6px;font-size:10px;color:#7f8a84;letter-spacing:.04em}
+.at-kpis p{margin:0 0 6px;font-size:10px;color:#7f8996;letter-spacing:.04em}
 .at-kpis b{display:block;font:28px Georgia,serif;color:var(--ink)}
 .at-kpis small{font-size:10px;color:#8b958f}
 .at-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -28,8 +28,8 @@
 .at-chart{position:relative}
 .at-chart svg{display:block;width:100%;height:auto;overflow:visible}
 .at-chart .grid{stroke:#ebe8e2;stroke-width:1}
-.at-chart .axis{font:10px var(--font-geist-sans);fill:#8a948e}
-.at-chart .bar{fill:#1f8358;pointer-events:none}
+.at-chart .axis{font:10px var(--font-geist-sans);fill:#8a93a0}
+.at-chart .bar{fill:#2f526f;pointer-events:none}
 .at-chart .hit{fill:transparent;cursor:default}
 .at-chart .hit:hover+.bar,.at-chart .hit:focus+.bar{fill:#145c3d}
 .at-tip{position:absolute;pointer-events:none;background:#1f332d;color:#fff;font-size:11px;line-height:1.4;padding:7px 9px;border-radius:5px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
@@ -39,15 +39,15 @@
 .at-hbars li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:12px;align-items:center}
 .at-hbars li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
 .at-hbars li b{font-weight:500;color:#4d5853;font-size:11px}
-.at-hbars li i{grid-column:1/-1;display:block;height:8px;border-radius:0 4px 4px 0;background:#1f8358;min-width:2px}
+.at-hbars li i{grid-column:1/-1;display:block;height:8px;border-radius:0 4px 4px 0;background:#2f526f;min-width:2px}
 .at-funnel{display:grid;gap:8px}
 .at-funnel div{display:grid;grid-template-columns:140px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:12px}
-.at-funnel i{display:block;height:22px;border-radius:0 4px 4px 0;background:#1f8358;min-width:2px}
+.at-funnel i{display:block;height:22px;border-radius:0 4px 4px 0;background:#2f526f;min-width:2px}
 .at-funnel b{font-weight:500;text-align:right}
 
 /* Tables */
 .at-table{width:100%;border-collapse:collapse;font-size:12px}
-.at-table th{text-align:left;font-size:10px;font-weight:500;color:#7f8a84;letter-spacing:.04em;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.at-table th{text-align:left;font-size:10px;font-weight:500;color:#7f8996;letter-spacing:.04em;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .at-table td{padding:10px 8px;border-bottom:1px solid #f0ede7;vertical-align:top}
 .at-table tr.clickable{cursor:pointer}
 .at-table tr.clickable:hover td{background:#faf8f4}
