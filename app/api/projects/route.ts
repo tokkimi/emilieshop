@@ -1,9 +1,9 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { getChatGPTUser } from '../../chatgpt-auth';
 import { getDb } from '../../../db';
 import { projects, users } from '../../../db/schema';
-import { hasSupabasePublicConfig } from '../../../lib/supabase/config';
+import { hasSupabasePublicConfig, supabaseMediaBucket } from '../../../lib/supabase/config';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 export async function GET() {
@@ -37,4 +37,31 @@ export async function POST(request: Request) {
   await db.insert(users).values({ id: user.userId, email: user.email, displayName: user.displayName, createdAt: now }).onConflictDoUpdate({ target: users.id, set: { email: user.email, displayName: user.displayName } });
   await db.insert(projects).values({ id, ownerId: user.userId, title: String(input.title || 'Notre Maison').slice(0, 100), address: String(input.address || '').slice(0, 180), years: String(input.years || '').slice(0, 60), collection: String(input.collection || 'Essentiel').slice(0, 30), coverColor: String(input.coverColor || 'forest').slice(0, 20), answersJson: JSON.stringify(input.answers || {}), optionsJson: JSON.stringify(input.options || []), createdAt: now, updatedAt: now });
   return NextResponse.json({ id }, { status: 201 });
+}
+
+// Drafts only: once a book is approved or ordered it stays on file.
+const DELETABLE_STATUSES = ['draft', 'generating', 'preview', 'changes_requested'];
+
+export async function DELETE(request: Request) {
+  const user = await getChatGPTUser();
+  if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+  const id = new URL(request.url).searchParams.get('id') || '';
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Projet invalide' }, { status: 400 });
+  if (hasSupabasePublicConfig()) {
+    const supabase = (await createSupabaseServerClient())!;
+    const { data: project } = await supabase.from('projects').select('id,status').eq('id', id).eq('owner_id', user.userId).maybeSingle();
+    if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
+    if (!DELETABLE_STATUSES.includes(project.status)) return NextResponse.json({ error: 'Ce livre est déjà validé ou commandé : il ne peut plus être supprimé.' }, { status: 409 });
+    const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('project_id', id);
+    if (count) return NextResponse.json({ error: 'Ce livre a une commande : il ne peut plus être supprimé.' }, { status: 409 });
+    // Remove the uploaded files first; the rows go with the project (cascade).
+    const { data: media } = await supabase.from('media').select('object_key').eq('project_id', id).eq('owner_id', user.userId);
+    const keys = (media || []).map((item) => item.object_key).filter(Boolean);
+    if (keys.length) await supabase.storage.from(supabaseMediaBucket).remove(keys);
+    const { error } = await supabase.from('projects').delete().eq('id', id).eq('owner_id', user.userId);
+    if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être supprimé.' }, { status: 503 });
+    return NextResponse.json({ deleted: id });
+  }
+  await getDb().delete(projects).where(and(eq(projects.id, id), eq(projects.ownerId, user.userId)));
+  return NextResponse.json({ deleted: id });
 }

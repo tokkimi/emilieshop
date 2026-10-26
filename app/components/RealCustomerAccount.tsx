@@ -3,6 +3,8 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "./SafeLink";
 import { formatCad } from "../../lib/catalog";
 type Props = { name: string; email: string; locale?: "fr" | "en" };
+// Same list as the DELETE handler in app/api/projects/route.ts.
+const DRAFT_STATUSES = ["draft", "generating", "preview", "changes_requested"];
 type Project = {
   id: string;
   title: string;
@@ -60,6 +62,26 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
     shipping_address: {},
   });
   const [notice, setNotice] = useState("");
+  const [deleting, setDeleting] = useState("");
+  const deleteDraft = async (project: Project) => {
+    const question = en
+      ? `Delete the draft “${project.title}”? Its photos are deleted too. This cannot be undone.`
+      : `Supprimer le brouillon « ${project.title} » ? Ses photos seront aussi supprimées. C’est définitif.`;
+    if (!window.confirm(question)) return;
+    setDeleting(project.id);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/projects?id=${project.id}`, { method: "DELETE" });
+      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(result.error || (en ? "Deletion failed." : "Suppression impossible."));
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      setNotice(en ? "Draft deleted." : "Brouillon supprimé.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : en ? "Deletion failed." : "Suppression impossible.");
+    } finally {
+      setDeleting("");
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [payingOrder, setPayingOrder] = useState("");
   const refresh = async () => {
@@ -269,6 +291,18 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
                       >
                         {en ? "Open proof →" : "Ouvrir l’aperçu →"}
                       </Link>
+                      {DRAFT_STATUSES.includes(project.status) ? (
+                        <button
+                          type="button"
+                          className="project-delete"
+                          disabled={deleting === project.id}
+                          onClick={() => deleteDraft(project)}
+                        >
+                          {deleting === project.id
+                            ? en ? "Deleting…" : "Suppression…"
+                            : en ? "Delete" : "Supprimer"}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                   <mark>{project.status}</mark>

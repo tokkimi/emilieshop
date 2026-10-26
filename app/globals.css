@@ -204,3 +204,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .studio-printer { margin:-6px 0 22px; font-size:12px; opacity:.8; }
 .studio-printer a { text-decoration:underline; }
 @media(max-width:760px){ .printer-choice{padding:48px 16px 72px}.printer-grid{grid-template-columns:1fr}.printer-card{padding:24px} }
+
+/* Footer brand: monogram + name, tagline underneath */
+.site-footer .footer-brand { display:flex; align-items:center; gap:14px; color:#fff; font-size:24px; font-weight:500; letter-spacing:-.01em; }
+.site-footer .footer-brand .brand-mark { width:42px; height:50px; flex:none; }
+.site-footer .footer-tagline { margin:4px 0 0; max-width:260px; font:italic 15px/1.6 var(--font-display),Georgia,serif; color:#b9c3cc; }
+.profile-buttons .project-delete { background:transparent; border:0; padding:8px 4px; font-size:12px; color:#9b3b3b; text-decoration:underline; cursor:pointer; }
+.profile-buttons .project-delete:disabled { opacity:.5; cursor:default; }
+.site-footer .footer-brand>span:not(.brand-mark) { display:inline !important; }
