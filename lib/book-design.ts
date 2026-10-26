@@ -1,4 +1,4 @@
-// Format d'impression Lulu : 8,5 × 11 po (21,6 × 27,9 cm), portrait, couverture rigide.
+// Format de composition historique : 8,5 × 11 po (21,6 × 27,9 cm), portrait, couverture rigide.
 export const PRINT_TRIM = { widthIn: 8.5, heightIn: 11, label: '21,6 × 27,9 cm' } as const;
 
 export type SwatchId = string;

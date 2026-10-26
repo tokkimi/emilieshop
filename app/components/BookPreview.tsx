@@ -3,10 +3,13 @@
 import '../book-editor.css';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from './SafeLink';
+import { uploadMedia } from '../../lib/upload-media';
 import { loadLocalMedia, saveLocalMedia } from '../../lib/client-media';
 import { BOOK_STORAGE_KEY, bookForStorage, ensureCompleteBook, fallbackBook, type BookLocale, type BookMedia, type BookPage, type GeneratedBook } from '../../lib/book';
 import { COVER_COLORS, PAGE_COLORS, PRINT_TRIM } from '../../lib/book-design';
 import { CART_STORAGE_KEY, calculateCatalogSubtotal, formatCad } from '../../lib/catalog';
+import { selectCoverPhoto } from '../../lib/book-layout';
+import { photoMetadata } from '../../lib/photo-metadata';
 import { BookPageView } from './BookPageView';
 import { BookFlip } from './BookFlip';
 
@@ -25,8 +28,12 @@ function initialBook(locale: BookLocale) {
 
 async function hydrateMedia(book: GeneratedBook) {
   const media = await Promise.all(book.media.map(async (item) => {
-    if (item.previewUrl || !item.storageKey) return item;
-    try { return { ...item, previewUrl: await loadLocalMedia(item.storageKey) }; } catch { return item; }
+    if (item.previewUrl && !item.previewUrl.startsWith('blob:')) return item;
+    try {
+      const local = await loadLocalMedia(item.storageKey || item.id);
+      if (local) return { ...item, previewUrl: local };
+    } catch { /* The private cloud media can still be loaded below. */ }
+    return book.projectId ? { ...item, previewUrl: `/api/media/${item.id}` } : { ...item, previewUrl: undefined };
   }));
   return { ...book, media };
 }
@@ -43,7 +50,8 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<Tab>('photos');
   const [slot, setSlot] = useState<number | null>(null);
-  const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [uploadError, setUploadError] = useState('');
   const [uploading, setUploading] = useState(0);
   const [memorySlug, setMemorySlug] = useState('');
   const [origin, setOrigin] = useState('https://memoiremaison.com');
@@ -54,6 +62,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [price, setPrice] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [flipOpen, setFlipOpen] = useState(false);
+  const [coverVariation, setCoverVariation] = useState(0);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const profile = en ? '/en/profile' : '/profil';
   const studio = en ? '/en/studio' : '/atelier';
@@ -115,11 +124,25 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
       sessionStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(persistentBook));
       try { localStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(persistentBook)); } catch { /* ignore quota */ }
       if (book.projectId) {
-        await fetch(`/api/book-generations/${encodeURIComponent(book.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ book: persistentBook, version: book.version, status: book.status === 'approved' ? 'ready' : book.status }) }).catch(() => undefined);
+        const response = await fetch(`/api/book-generations/${encodeURIComponent(book.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ book: persistentBook, version: book.version, status: book.status === 'approved' ? 'ready' : book.status }) }).catch(() => null);
+        if (!response?.ok) { setSaveState('error'); return; }
       }
       setSaveState('saved');
     }, 700);
     return () => { window.clearTimeout(savingTimer); window.clearTimeout(timer); };
+  }, [book, restored]);
+
+  useEffect(() => {
+    if (!restored || !book.projectId) return;
+    const flush = () => {
+      const stored = bookForStorage({ ...book, updatedAt: new Date().toISOString() });
+      try { localStorage.setItem(BOOK_STORAGE_KEY, JSON.stringify(stored)); } catch { /* retain session copy */ }
+      void fetch(`/api/book-generations/${encodeURIComponent(book.id)}`, { method: 'PATCH', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ book: stored, version: book.version, status: book.status === 'approved' ? 'ready' : book.status }) }).catch(() => undefined);
+    };
+    const onHidden = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHidden);
+    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHidden); };
   }, [book, restored]);
 
   const mediaById = useMemo(() => new Map(book.media.map((item) => [item.id, item])), [book.media]);
@@ -155,15 +178,22 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
     const files = Array.from(event.target.files || []);
     event.target.value = '';
     if (!files.length) return;
+    setUploadError('');
     setUploading((value) => value + files.length);
     const additions: BookMedia[] = [];
     for (const file of files) {
       const kind = file.type.startsWith('video/') ? 'video' as const : file.type.startsWith('audio/') ? 'audio' as const : 'photo' as const;
       let item: BookMedia | null = null;
       if (book.projectId) {
-        const form = new FormData(); form.set('projectId', book.projectId); form.set('file', file);
-        const response = await fetch('/api/uploads', { method: 'POST', body: form }).catch(() => null);
-        if (response?.ok) { const result = (await response.json()) as { id: string }; item = { id: result.id, name: file.name, kind, previewUrl: `/api/media/${result.id}` }; }
+        try {
+          const result = await uploadMedia(book.projectId, file);
+          item = { ...(await photoMetadata(file)), id: result.id, name: file.name, kind, previewUrl: `/api/media/${result.id}` };
+        } catch { /* Display failure below; never pretend this was saved remotely. */ }
+        if (!item) {
+          setUploadError(tr('Certaines photos n’ont pas été envoyées dans votre compte. Elles n’ont pas été ajoutées au livre. Réessayez avec les fichiers concernés.', 'Some photos could not be uploaded to your account. They were not added to the book. Please retry those files.'));
+          setUploading((value) => Math.max(0, value - 1));
+          continue;
+        }
       }
       if (!item) { const id = crypto.randomUUID(); await saveLocalMedia(id, file); item = { id, name: file.name, kind, previewUrl: URL.createObjectURL(file), storageKey: id }; }
       additions.push(item);
@@ -172,6 +202,13 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
     edit((current) => ({ ...current, media: [...current.media, ...additions] }));
     const firstPhoto = additions.find((item) => item.kind === 'photo');
     if (firstPhoto && slot !== null) placePhoto(firstPhoto.id);
+  };
+
+  const composeCover = () => {
+    const photo = selectCoverPhoto(book.media, coverVariation);
+    const styles: NonNullable<GeneratedBook['coverStyle']>[] = ['window', 'full-photo', 'minimal'];
+    edit((current) => ({ ...current, coverStyle: styles[coverVariation % styles.length], coverCropX: 50, coverCropY: 50, pages: current.pages.map((page, index) => index === 0 ? { ...page, mediaIds: photo ? [photo.id] : [], layout: 'full-photo' } : page) }));
+    setCoverVariation((value) => value + 1); setActive(0); setTab('layouts');
   };
 
   const openCheckout = () => { setApprovalError(''); setConfirmed(false); setCheckoutOpen(true); };
@@ -201,10 +238,10 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
     <main className="bk-shell">
       <header className="bk-top">
         <Link className="bk-logo" href={profile}><img src="/memoire-maison-logo.png" alt="Mémoire Maison" /></Link>
-        <span className={`bk-save ${saveState}`}>{saveState === 'saved' ? tr('✓ Enregistré', '✓ Saved') : tr('Enregistrement…', 'Saving…')}</span>
+        <button type="button" className="bk-ghost" onClick={() => {setActive(0);setTab("layouts");}}>{tr("Couverture", "Cover")}</button><span role="status" className={`bk-save ${saveState}`}>{saveState === 'error' ? tr('Échec de sauvegarde — copie locale conservée', 'Save failed — local copy retained') : saveState === 'saved' ? (book.projectId ? tr('✓ Enregistré', '✓ Saved') : tr('✓ Enregistré sur cet appareil', '✓ Saved on this device')) : tr('Enregistrement…', 'Saving…')}</span>
         <div className="bk-top-actions">
           <button type="button" className="bk-ghost" onClick={() => setFlipOpen(true)}>{tr('Feuilleter le livre', 'Flip through')}</button>
-          <button type="button" className="bk-pay" onClick={openCheckout} disabled={!restored}>{tr('Payer et imprimer', 'Pay and print')}{price ? ` · ${formatCad(price, locale)}` : ''} →</button>
+          {book.printProvider ? <Link className="bk-pay" href={`${en ? '/en' : ''}/creation/${book.printProvider}`}>{tr('Retour au test imprimeur', 'Return to printer test')} →</Link> : <button type="button" className="bk-pay" onClick={openCheckout} disabled={!restored}>{tr('Payer et imprimer', 'Pay and print')}{price ? ` · ${formatCad(price, locale)}` : ''} →</button>}
         </div>
       </header>
 
@@ -217,11 +254,12 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
               </button>
             ))}
           </nav>
-          <div className="bk-panel">
+          <div className="bk-panel">{book.qualityNotes?.map((note) => <p className="bk-hint" key={note}>{note}</p>)}
             {tab === 'photos' ? (
               <>
                 <p className="bk-hint">{slot !== null ? tr('Choisissez la photo à placer sur la page.', 'Pick the photo to place on the page.') : tr('Cliquez une photo pour l’ajouter à la page affichée.', 'Click a photo to add it to the page shown.')}</p>
                 <button type="button" className="bk-upload" onClick={() => fileInput.current?.click()}>{uploading ? tr(`Envoi… (${uploading})`, `Uploading… (${uploading})`) : tr('+ Ajouter des photos, vidéos ou voix', '+ Add photos, videos or voices')}</button>
+                {uploadError && <p role="alert">{uploadError}</p>}
                 <input ref={fileInput} type="file" hidden multiple accept="image/*,video/*,audio/*" onChange={addFiles} />
                 <div className="bk-tray">
                   {photos.map((item) => (
@@ -243,7 +281,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
               </>
             ) : null}
             {tab === 'layouts' && page ? (
-              page.kind === 'cover' || page.kind === 'interactive' ? <p className="bk-hint">{tr('Cette page a une mise en page fixe.', 'This page has a fixed layout.')}</p> : (
+              page.kind === 'cover' ? <div className="bk-cover-options"><p className="bk-hint">{tr('Composez votre première de couverture. Le titre est modifiable directement sur le livre.', 'Compose your front cover. Edit the title directly on the book.')}</p><button type="button" className="bk-upload" onClick={composeCover}>{tr('Proposer une couverture', 'Suggest a cover')}</button>{(['window','full-photo','minimal'] as const).map((style) => <button type="button" key={style} aria-pressed={(book.coverStyle || 'window') === style} onClick={() => updateBook({coverStyle:style})}>{style === 'window' ? tr('Photo encadrée', 'Framed photo') : style === 'full-photo' ? tr('Pleine photo', 'Full photo') : tr('Typographique', 'Typography')}</button>)}<button type="button" onClick={() => {setSlot(0);setTab('photos');}}>{tr('Choisir la photo', 'Choose photo')}</button>{book.coverStyle !== 'minimal' && <><label>{tr('Cadrage horizontal', 'Horizontal crop')}<input type="range" min="0" max="100" value={book.coverCropX ?? 50} onChange={(e) => updateBook({coverCropX:Number(e.target.value)})}/></label><label>{tr('Cadrage vertical', 'Vertical crop')}<input type="range" min="0" max="100" value={book.coverCropY ?? 50} onChange={(e) => updateBook({coverCropY:Number(e.target.value)})}/></label></>}</div> : page.kind === 'interactive' ? <p className="bk-hint">{tr('Cette page a une mise en page fixe.', 'This page has a fixed layout.')}</p> : (
                 <>
                   <div className="bk-layouts">
                     {LAYOUTS.map((layout) => (

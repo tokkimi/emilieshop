@@ -66,7 +66,7 @@ export function BookPageView({ page, book, index, photoUrl, qrUrl, editable = fa
         if (!photo && !editable) return <div key={slot} className="bk-photo bk-photo-blank" />;
         return (
           <button key={slot} type="button" className={`bk-photo ${photo ? '' : 'bk-photo-empty'}`} disabled={!editable} onClick={(event) => { event.stopPropagation(); onPhotoSlot?.(slot); }} aria-label={en ? 'Choose a photo' : 'Choisir une photo'}>
-            {photo ? <img src={photo.url} alt="" /> : <span>{en ? '+ Photo' : '+ Photo'}</span>}
+            {photo ? <img src={photo.url} alt="" style={isCover ? { objectPosition: `${book.coverCropX ?? 50}% ${book.coverCropY ?? 50}%` } : undefined} /> : <span>{en ? '+ Photo' : '+ Photo'}</span>}
           </button>
         );
       })}
@@ -84,7 +84,7 @@ export function BookPageView({ page, book, index, photoUrl, qrUrl, editable = fa
 
   if (isCover) {
     return (
-      <div className="bk-page bk-cover" style={style}>
+      <div className={`bk-page bk-cover bk-cover-${book.coverStyle || "window"}`} style={style}>
         <small className="bk-brand">MÉMOIRE MAISON</small>
         {photoArea}
         <EditableText as="h2" className="bk-cover-title" value={page.title} placeholder={en ? 'Book title' : 'Titre du livre'} editable={editable} multiline={false} onCommit={(title) => { onChange?.({ title }); onBookChange?.({ title }); }} />

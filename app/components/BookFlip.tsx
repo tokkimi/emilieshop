@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { GeneratedBook } from '../../lib/book';
+import { BookBackCover } from './BookBackCover';
 import { BookPageView } from './BookPageView';
 
 type Turn = { dir: 1 | -1; to: number } | null;
@@ -11,8 +12,9 @@ export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: Generat
   const spreads = useMemo(() => {
     const list: (number | null)[][] = [[null, 0]];
     for (let index = 1; index < book.pages.length; index += 2) list.push([index, index + 1 < book.pages.length ? index + 1 : null]);
+    if (book.printProvider === 'prodigi') list.push([book.pages.length, null]);
     return list;
-  }, [book.pages.length]);
+  }, [book.pages.length, book.printProvider]);
   const [current, setCurrent] = useState(0);
   const [turn, setTurn] = useState<Turn>(null);
 
@@ -35,7 +37,7 @@ export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: Generat
   });
 
   const page = (index: number | null | undefined) =>
-    index === null || index === undefined ? <div className="bf-blank" /> : <div className="bf-page"><BookPageView page={book.pages[index]} book={book} index={index} photoUrl={photoUrl} qrUrl={qrUrl} en={en} /></div>;
+    index === book.pages.length ? <div className="bf-page"><BookBackCover book={book}/></div> : index === null || index === undefined ? <div className="bf-blank" /> : <div className="bf-page"><BookPageView page={book.pages[index]} book={book} index={index} photoUrl={photoUrl} qrUrl={qrUrl} en={en} /></div>;
 
   const [left, right] = spreads[current];
   const target = turn ? spreads[turn.to] : null;
@@ -43,12 +45,13 @@ export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: Generat
   const baseLeft = turn?.dir === -1 ? target![0] : left;
   const baseRight = turn?.dir === 1 ? target![1] : right;
   const coverOnly = !turn && current === 0;
+  const backOnly = !turn && book.printProvider === 'prodigi' && current === spreads.length - 1;
 
   return (
     <div className="bf-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="bf-stage" onClick={(event) => event.stopPropagation()}>
         <button type="button" className="bf-close" onClick={onClose} aria-label={en ? 'Close' : 'Fermer'}>×</button>
-        <div className={`bf-book ${coverOnly ? 'cover-only' : ''}`}>
+        <div className={`bf-book ${coverOnly ? 'cover-only' : ''} ${backOnly ? 'back-only' : ''}`}>
           <div className="bf-side bf-left" onClick={() => go(-1)}>{page(baseLeft)}</div>
           <div className="bf-side bf-right" onClick={() => go(1)}>{page(baseRight)}</div>
           {turn ? (
@@ -60,7 +63,7 @@ export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: Generat
         </div>
         <div className="bf-controls">
           <button type="button" onClick={() => go(-1)} disabled={current === 0}>←</button>
-          <span>{current === 0 ? (en ? 'Cover' : 'Couverture') : `${en ? 'Pages' : 'Pages'} ${spreads[current].filter((v) => v !== null).join('–')}`}</span>
+          <span>{backOnly ? (en ? 'Back cover' : 'Quatrième de couverture') : current === 0 ? (en ? 'Cover' : 'Couverture') : `${en ? 'Pages' : 'Pages'} ${spreads[current].filter((v) => v !== null).join('–')}`}</span>
           <button type="button" onClick={() => go(1)} disabled={current === spreads.length - 1}>→</button>
         </div>
       </div>

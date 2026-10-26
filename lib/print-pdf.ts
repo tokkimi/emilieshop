@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { ensureCompleteBook, type BookMedia, type BookPage, type GeneratedBook } from './book';
 
 const POINTS_PER_INCH = 72;
-// Lulu 8.5 × 11 in hardcover interior, including 0.125 in bleed on every edge.
+// Legacy 8.5 × 11 in hardcover interior, including 0.125 in bleed on every edge.
 const INTERIOR_WIDTH = 8.75 * POINTS_PER_INCH;
 const INTERIOR_HEIGHT = 11.25 * POINTS_PER_INCH;
 const TRIM_INSET = 0.125 * POINTS_PER_INCH;
@@ -14,6 +14,8 @@ type MediaLoader = (item: BookMedia) => Promise<LoadedMedia | null>;
 type Embedded = { image: PDFImage; widthPx?: number; heightPx?: number };
 
 export type PrintPdfInput = {
+  brandLogoPng?: Uint8Array;
+  spineWidth?: number;
   book: GeneratedBook;
   coverWidth: number;
   coverHeight: number;
@@ -192,11 +194,13 @@ export async function buildPrintPdfs(input: PrintPdfInput): Promise<PrintPdfResu
   const coverEmbedded = await embedMedia(coverDocument, book, input.loadMedia, warnings);
   const coverPage = coverDocument.addPage([input.coverWidth, input.coverHeight]);
   coverPage.drawRectangle({ x: 0, y: 0, width: input.coverWidth, height: input.coverHeight, color: colors.dark });
-  const frontX = input.coverWidth / 2;
+  const spineWidth = input.spineWidth || 0;
+  const backWidth = (input.coverWidth - spineWidth) / 2;
+  const frontX = backWidth + spineWidth;
   const frontWidth = input.coverWidth - frontX;
   const coverPhotoId = book.pages.find((page) => page.kind === 'cover')?.mediaIds[0];
   const coverPhoto = coverPhotoId ? coverEmbedded.get(coverPhotoId) : undefined;
-  if (coverPhoto) {
+  if (coverPhoto && book.coverStyle !== 'minimal') {
     drawPhotoBox(coverPage, coverPhoto, { x: frontX, y: 0, width: frontWidth, height: input.coverHeight }, colors.dark);
     coverPage.drawRectangle({ x: frontX, y: 0, width: frontWidth, height: input.coverHeight, color: colors.dark, opacity: .36 });
   }
@@ -211,10 +215,22 @@ export async function buildPrintPdfs(input: PrintPdfInput): Promise<PrintPdfResu
   try {
     const qrData = await QRCode.toDataURL(input.memoryUrl, { width: 640, margin: 1, errorCorrectionLevel: 'H', color: { dark: '#16271F', light: '#FFFFFF' } });
     const qr = await coverDocument.embedPng(Uint8Array.from(Buffer.from(qrData.split(',')[1], 'base64')));
-    coverPage.drawImage(qr, { x: coverSafe, y: coverSafe, width: 72, height: 72 });
-    coverPage.drawText('PHOTOS - FILMS - VOIX', { x: coverSafe + 86, y: coverSafe + 43, font: coverFonts.sansBold, size: 8, color: cmyk(0, 0, 0, .05) });
-    coverPage.drawText('Memory Link prive', { x: coverSafe + 86, y: coverSafe + 23, font: coverFonts.sans, size: 10, color: cmyk(0, 0, 0, .08) });
+    const qrY = coverSafe + (book.printProvider === 'prodigi' ? 76 : 0);
+    coverPage.drawImage(qr, { x: coverSafe, y: qrY, width: 72, height: 72 });
+    coverPage.drawText('PHOTOS - FILMS - VOIX', { x: coverSafe + 86, y: qrY + 43, font: coverFonts.sansBold, size: 8, color: cmyk(0, 0, 0, .05) });
+    coverPage.drawText('Memory Link prive', { x: coverSafe + 86, y: qrY + 23, font: coverFonts.sans, size: 10, color: cmyk(0, 0, 0, .08) });
   } catch { warnings.push('Le QR Memory Link n’a pas pu être ajouté à la couverture.'); }
+
+  if (book.printProvider === 'prodigi') {
+    // Mandatory, fixed brand placement on the back cover; never controlled by client text.
+    if (!input.brandLogoPng) throw new Error('Le logo Mémoire Maison est obligatoire sur la couverture Prodigi.');
+    const logo = await coverDocument.embedPng(input.brandLogoPng);
+    const width = Math.min(108, backWidth * .34);
+    const height = width * logo.height / logo.width;
+    const x = (backWidth - width) / 2;
+    coverPage.drawRectangle({ x: x - 8, y: coverSafe - 8, width: width + 16, height: height + 16, color: cmyk(0, 0, 0, 0) });
+    coverPage.drawImage(logo, { x, y: coverSafe, width, height });
+  }
 
   return {
     interior: await interiorDocument.save({ useObjectStreams: false }),
