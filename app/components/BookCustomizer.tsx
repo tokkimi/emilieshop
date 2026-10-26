@@ -62,8 +62,8 @@ export function BookCustomizer({ locale = 'fr', printer, provider = printer }: {
     if (!hydrated) return;
     try {
       localStorage.setItem(draftKey, JSON.stringify({ title, address, years, color, format, answers, selectedExtras, assets: assets.map(({ id, name, kind, storageKey, width, height, fingerprint }) => ({ id, name, kind, storageKey, width, height, fingerprint })), updatedAt: new Date().toISOString() }));
-      setDraftReady(true);
-    } catch { setDraftReady(false); setError(en ? 'This device could not save your draft.' : 'Cet appareil n’a pas pu enregistrer le brouillon.'); }
+      queueMicrotask(() => setDraftReady(true));
+    } catch { queueMicrotask(() => { setDraftReady(false); setError(en ? 'This device could not save your draft.' : 'Cet appareil n’a pas pu enregistrer le brouillon.'); }); }
   }, [hydrated, draftKey, address, answers, assets, color, format, selectedExtras, title, years, en]);
 
   const recoverFiles = async () => {

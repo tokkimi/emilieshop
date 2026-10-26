@@ -204,4 +204,3 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .studio-printer { margin:-6px 0 22px; font-size:12px; opacity:.8; }
 .studio-printer a { text-decoration:underline; }
 @media(max-width:760px){ .printer-choice{padding:48px 16px 72px}.printer-grid{grid-template-columns:1fr}.printer-card{padding:24px} }
-
