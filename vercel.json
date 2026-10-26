@@ -1,5 +1,1 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "npx next build"
-}
+{"$schema":"https://openapi.vercel.sh/vercel.json","framework":"nextjs","buildCommand":"npx next build","crons":[{"path":"/api/cron/print","schedule":"*/10 * * * *"}]}

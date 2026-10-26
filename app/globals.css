@@ -187,3 +187,21 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 
 @media print{@page{size:216mm 216mm;margin:0}html,body{width:216mm;background:#fff!important}.preview-shell{background:#fff!important}.preview-shell>.preview-top,.preview-shell>.preview-workspace,.preview-shell>.approval-bar,.preview-shell>.approval-success{display:none!important}.print-book{display:block!important}.print-page{display:block!important;position:relative;width:216mm;height:216mm;box-sizing:border-box;padding:15mm;overflow:hidden;break-after:page;page-break-after:always;outline:0!important;box-shadow:none!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-page:last-child{break-after:auto;page-break-after:auto}.print-page .page-main-image,.print-page .page-media-collage{print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-page h2{font-size:20mm}.print-page h3{font-size:11mm}.print-page>p{font-size:4mm}.print-page blockquote{font-size:7mm}.print-proof-note{display:none!important}}
 .data-row.print-row{grid-template-columns:1.05fr 1.35fr .75fr .85fr .9fr .7fr 2.5fr}.print-actions{display:flex!important;flex-wrap:wrap;gap:5px;align-items:center}.print-actions button,.print-actions a{border:1px solid var(--line);background:#fff;padding:5px 7px;font-size:8px;cursor:pointer}.print-actions small{flex-basis:100%;font-size:8px;color:#67736c}
+
+/* Printer choice (studio entry) */
+.printer-choice { max-width:1080px; margin:0 auto; padding:72px 24px 96px; text-align:center; }
+.printer-choice h1 { max-width:none; margin:8px auto 14px; text-align:center; font:500 clamp(36px,5vw,58px)/1.05 var(--font-display),Georgia,serif; letter-spacing:-.03em; }
+.printer-choice-intro { max-width:620px; margin:0 auto 44px; color:var(--home-muted,#536576); font-size:17px; line-height:1.6; }
+.printer-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; text-align:left; }
+.printer-card { display:flex; flex-direction:column; padding:32px; background:#fff; border:1px solid var(--line); border-radius:24px; }
+.printer-card h2 { margin:0 0 8px; font:500 34px var(--font-display),Georgia,serif; }
+.printer-card>p { margin:0 0 22px; color:var(--home-muted,#536576); line-height:1.55; }
+.printer-card dl { margin:0 0 28px; flex:1; }
+.printer-card dl div { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-top:1px solid var(--line); }
+.printer-card dt { font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.65; }
+.printer-card dd { margin:0; text-align:right; font-size:14px; }
+.printer-card .button { align-self:flex-start; border-radius:99px; }
+.studio-printer { margin:-6px 0 22px; font-size:12px; opacity:.8; }
+.studio-printer a { text-decoration:underline; }
+@media(max-width:760px){ .printer-choice{padding:48px 16px 72px}.printer-grid{grid-template-columns:1fr}.printer-card{padding:24px} }
+

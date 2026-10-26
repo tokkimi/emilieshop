@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getProdigiConfiguration } from '../../../../lib/prodigi';
 import { hasSupabaseAdminConfig, hasSupabasePublicConfig } from '../../../../lib/supabase/config';
 import { getStripeConfiguration } from '../../../../lib/stripe';
 import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
@@ -6,6 +7,7 @@ import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const prodigi = getProdigiConfiguration();
   const stripe = getStripeConfiguration();
   const admin = createSupabaseAdminClient();
   let serverAdministration = false;
@@ -19,8 +21,9 @@ export async function GET() {
     authentication: hasSupabasePublicConfig(),
     serverAdministration,
     serverAdministrationConfigured: hasSupabaseAdminConfig(),
-    prodigi: Boolean(process.env.PRODIGI_API_KEY),
-    printingEnabled: false,
+    prodigi: prodigi.configured,
+    prodigiOrders: prodigi.ordersEnabled,
+    automaticPrintWorker: Boolean(prodigi.ordersEnabled && process.env.CRON_SECRET),
     payments: stripe.configured,
     stripe,
     transactionalEmail: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),

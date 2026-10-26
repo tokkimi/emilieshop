@@ -172,7 +172,7 @@ function OrderEditor({ order, close, saved, printActions }: { order: Order; clos
           </div>
           <p className="hint">Le remboursement réel se fait dans Stripe ; indiquez ici le montant pour que la comptabilité soit juste.</p>
         </form>
-        <h3 style={{ font: '17px Georgia, serif', margin: '24px 0 8px' }}>Impression</h3>
+        <h3 style={{ font: '17px Georgia, serif', margin: '24px 0 8px' }}>Impression (Mpix ou Prodigi)</h3>
         {printActions(order.id)}
       </aside>
     </>

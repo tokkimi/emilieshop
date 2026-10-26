@@ -11,7 +11,7 @@ const SAFE_INSET = 0.5 * POINTS_PER_INCH;
 
 type LoadedMedia = { bytes: Uint8Array; contentType: string; widthPx?: number; heightPx?: number };
 type MediaLoader = (item: BookMedia) => Promise<LoadedMedia | null>;
-type Embedded = { image: PDFImage; widthPx?: number; heightPx?: number };
+type Embedded = { image: PDFImage; widthPx?: number; heightPx?: number; fit?: 'contain' | 'cover' };
 
 export type PrintPdfInput = {
   brandLogoPng?: Uint8Array;
@@ -82,8 +82,8 @@ function drawWrapped(page: PDFPage, text: string, options: { x: number; y: numbe
   return options.y - wrapped.length * leading;
 }
 
-function drawImageCrop(page: PDFPage, image: PDFImage, box: { x: number; y: number; width: number; height: number }) {
-  const scale = Math.max(box.width / image.width, box.height / image.height);
+function drawImageCrop(page: PDFPage, image: PDFImage, box: { x: number; y: number; width: number; height: number }, fit: 'contain' | 'cover' = 'contain') {
+  const scale = (fit === 'cover' ? Math.max : Math.min)(box.width / image.width, box.height / image.height);
   const width = image.width * scale;
   const height = image.height * scale;
   page.pushOperators(pushGraphicsState(), rectangle(box.x, box.y, box.width, box.height), clip(), endPath());
@@ -98,7 +98,7 @@ async function embedMedia(document: PDFDocument, book: GeneratedBook, loadMedia:
     if (!loaded) { warnings.push(`Photo indisponible: ${item.name}`); continue; }
     try {
       const image = loaded.contentType.includes('png') ? await document.embedPng(loaded.bytes) : await document.embedJpg(loaded.bytes);
-      embedded.set(item.id, { image, widthPx: loaded.widthPx, heightPx: loaded.heightPx });
+      embedded.set(item.id, { image, widthPx: loaded.widthPx, heightPx: loaded.heightPx, fit: item.fit });
       if (Math.min(image.width, image.height) < 1200) warnings.push(`Résolution faible pour l'impression: ${item.name} (${Math.round(image.width)} x ${Math.round(image.height)} px)`);
     } catch {
       warnings.push(`Format photo non imprimable: ${item.name}. Utilisez JPEG ou PNG.`);
@@ -108,7 +108,7 @@ async function embedMedia(document: PDFDocument, book: GeneratedBook, loadMedia:
 }
 
 function drawPhotoBox(page: PDFPage, item: Embedded | undefined, box: { x: number; y: number; width: number; height: number }, background = cmyk(.05, .03, .05, .03)) {
-  if (item) drawImageCrop(page, item.image, box);
+  if (item) drawImageCrop(page, item.image, box, item.fit);
   else page.drawRectangle({ ...box, color: background });
 }
 
@@ -118,48 +118,78 @@ function pagePhotos(page: BookPage, embedded: Map<string, Embedded>) {
 
 function drawInteriorPage(target: PDFPage, content: BookPage, pageNumber: number, embedded: Map<string, Embedded>, fonts: { serif: PDFFont; serifBold: PDFFont; sans: PDFFont; sansBold: PDFFont }, colors: PrintPalette) {
   const photos = pagePhotos(content, embedded);
-  const width = INTERIOR_WIDTH;
-  const height = INTERIOR_HEIGHT;
+  const width = target.getWidth();
+  const height = target.getHeight();
   target.drawRectangle({ x: 0, y: 0, width, height, color: colors.light });
   const safe = TRIM_INSET + SAFE_INSET;
   const usable = width - safe * 2;
 
-  if (content.layout === 'full-photo') {
-    drawPhotoBox(target, photos[0], { x: 0, y: 0, width, height }, colors.dark);
-    target.drawRectangle({ x: 0, y: 0, width, height: 230, color: colors.dark, opacity: .88 });
-    target.drawText(printable(content.eyebrow || 'MEMOIRE MAISON').toUpperCase(), { x: safe, y: 184, font: fonts.sansBold, size: 9, color: cmyk(0, 0, 0, 0) });
-    drawWrapped(target, content.title, { x: safe, y: 154, width: usable, font: fonts.serifBold, size: 27, leading: 29, color: cmyk(0, 0, 0, 0), maxLines: 2 });
-    drawWrapped(target, content.body, { x: safe, y: 92, width: usable, font: fonts.serif, size: 10.5, leading: 14.5, color: cmyk(0, 0, 0, .05), maxLines: 4 });
-  } else if (content.layout === 'split') {
-    const photoWidth = width * .47;
-    drawPhotoBox(target, photos[0], { x: 0, y: 0, width: photoWidth, height });
-    const x = photoWidth + 42;
-    target.drawText(printable(content.eyebrow || '').toUpperCase(), { x, y: height - safe, font: fonts.sansBold, size: 8.5, color: colors.accent });
-    const afterTitle = drawWrapped(target, content.title, { x, y: height - safe - 38, width: width - x - safe, font: fonts.serifBold, size: 26, leading: 29, color: colors.dark, maxLines: 4 });
-    drawWrapped(target, content.quote || content.body, { x, y: afterTitle - 28, width: width - x - safe, font: content.quote ? fonts.serif : fonts.sans, size: content.quote ? 15 : 10.5, leading: content.quote ? 20 : 15, color: cmyk(.05, .02, .02, .68), maxLines: 11 });
-  } else if (content.layout === 'collage') {
-    const gap = 8;
-    const photoHeight = height * .52;
-    const cellWidth = (width - gap) / 2;
-    const cellHeight = (photoHeight - gap) / 2;
-    for (let index = 0; index < 4; index += 1) drawPhotoBox(target, photos[index], { x: (index % 2) * (cellWidth + gap), y: height - photoHeight + Math.floor(index / 2) * (cellHeight + gap), width: cellWidth, height: cellHeight });
-    target.drawText(printable(content.eyebrow || '').toUpperCase(), { x: safe, y: height - photoHeight - 40, font: fonts.sansBold, size: 8.5, color: colors.accent });
-    drawWrapped(target, content.title, { x: safe, y: height - photoHeight - 74, width: usable * .45, font: fonts.serifBold, size: 24, leading: 27, color: colors.dark, maxLines: 3 });
-    drawWrapped(target, content.body, { x: safe + usable * .5, y: height - photoHeight - 45, width: usable * .5, font: fonts.sans, size: 10, leading: 14, maxLines: 11 });
-  } else if (content.layout === 'minimal') {
-    target.drawRectangle({ x: safe, y: safe, width: 2, height: height - safe * 2, color: colors.accent });
-    target.drawText(printable(content.eyebrow || '').toUpperCase(), { x: safe + 34, y: height - safe - 25, font: fonts.sansBold, size: 9, color: colors.accent });
-    const afterTitle = drawWrapped(target, content.title, { x: safe + 34, y: height - safe - 85, width: usable - 60, font: fonts.serifBold, size: 34, leading: 38, color: colors.dark, maxLines: 4 });
-    drawWrapped(target, content.quote || content.body, { x: safe + 34, y: afterTitle - 45, width: usable - 80, font: content.quote ? fonts.serif : fonts.sans, size: content.quote ? 17 : 11, leading: content.quote ? 23 : 16, maxLines: 13 });
-  } else {
-    const imageHeight = height * .49;
-    drawPhotoBox(target, photos[0], { x: 0, y: height - imageHeight, width, height: imageHeight });
-    target.drawText(printable(content.eyebrow || '').toUpperCase(), { x: safe, y: height - imageHeight - 39, font: fonts.sansBold, size: 8.5, color: colors.accent });
-    drawWrapped(target, content.title, { x: safe, y: height - imageHeight - 76, width: usable * .44, font: fonts.serifBold, size: 25, leading: 28, color: colors.dark, maxLines: 4 });
-    drawWrapped(target, content.body, { x: safe + usable * .51, y: height - imageHeight - 42, width: usable * .49, font: fonts.sans, size: 10, leading: 14.5, maxLines: 13 });
+  const photoHeight = photos.length ? height * (content.layout === 'collage' ? .54 : .52) : 0;
+  if (photos.length) {
+    const x=safe, y=height-safe-photoHeight, photoWidth=width-safe*2, gap=8;
+    if(photos.length===1)drawPhotoBox(target,photos[0],{x,y,width:photoWidth,height:photoHeight});
+    else if(photos.length===2)photos.forEach((photo,index)=>drawPhotoBox(target,photo,{x:x+index*(photoWidth+gap)/2,y,width:(photoWidth-gap)/2,height:photoHeight}));
+    else photos.slice(0,4).forEach((photo,index)=>drawPhotoBox(target,photo,{x:x+(index%2)*(photoWidth+gap)/2,y:y+(1-Math.floor(index/2))*(photoHeight+gap)/2,width:(photoWidth-gap)/2,height:(photoHeight-gap)/2}));
   }
+  const top = photos.length ? height-safe-photoHeight-28 : height*.68;
+  const title = printable(content.title);
+  target.drawText(printable(content.eyebrow||'').toUpperCase(),{x:safe,y:top,font:fonts.sans,size:8.5,color:colors.accent});
+  const afterTitle=drawWrapped(target,title,{x:safe,y:top-34,width:usable,font:fonts.serif,size:27,leading:32,color:colors.dark,maxLines:3});
+  const afterBody=drawWrapped(target,content.body,{x:safe,y:afterTitle-14,width:usable,font:fonts.sans,size:12,leading:18,maxLines:10});
+  if(content.quote)drawWrapped(target,content.quote,{x:safe+12,y:afterBody-22,width:usable-24,font:fonts.serif,size:14,leading:20,maxLines:3});
 
   target.drawText(String(pageNumber), { x: pageNumber % 2 ? width - safe - 8 : safe, y: TRIM_INSET + 15, size: 8, font: fonts.sans, color: cmyk(0, 0, 0, .45) });
+}
+
+/** Prodigi BOOK-FE: single pages at trim, front + 24 content + back. No added bleed. */
+export async function buildProdigiPrintPdf(input: { book: GeneratedBook; logoPng: Uint8Array; loadMedia: MediaLoader; memoryUrl: string }) {
+  const document = await PDFDocument.create();
+  const width = 210 / 25.4 * 72;
+  const height = 297 / 25.4 * 72;
+  const safe = 12 / 25.4 * 72;
+  const book = ensureCompleteBook(input.book);
+  const warnings: string[] = [];
+  const embedded = await embedMedia(document, book, input.loadMedia, warnings);
+  if (warnings.some((warning) => /indisponible|non imprimable/.test(warning))) throw new Error('Certaines photos ne peuvent pas être imprimées. Remplacez-les avant de commander.');
+  const colors = palette[book.coverColor] || palette.midnight;
+  const fonts = { serif: await document.embedFont(StandardFonts.TimesRoman), serifBold: await document.embedFont(StandardFonts.TimesRomanBold), sans: await document.embedFont(StandardFonts.Helvetica), sansBold: await document.embedFont(StandardFonts.HelveticaBold) };
+  const front = document.addPage([width, height]);
+  front.drawRectangle({ x:0,y:0,width,height,color:colors.dark });
+  const photo = embedded.get(book.pages[0].mediaIds[0]);
+  if (photo && book.coverStyle !== 'minimal') {
+    const full = book.coverStyle === 'full-photo';
+    drawPhotoBox(front, photo, { x:full?0:safe*1.5, y:height*.34, width:full?width:width-safe*3, height:height*.52 });
+  }
+  const white = cmyk(0,0,0,0);
+  front.drawText('MÉMOIRE MAISON',{x:safe,y:height-safe-12,font:fonts.sansBold,size:9,color:white});
+  const titleSize = Math.min(38, width / 15);
+  const titleLines = lines(book.title,fonts.serif,titleSize,width-safe*2,8);
+  if (titleLines.length>4) throw new Error('Le titre de couverture est trop long pour être imprimé lisiblement.');
+  const titleY = book.coverStyle === 'minimal' ? height*.57 : height*.26;
+  titleLines.forEach((line,index)=>front.drawText(line,{x:(width-fonts.serif.widthOfTextAtSize(line,titleSize))/2,y:titleY-index*titleSize*1.15,font:fonts.serif,size:titleSize,color:white}));
+  drawWrapped(front,book.subtitle,{x:safe,y:Math.max(safe+25,titleY-titleLines.length*titleSize*1.15-20),width:width-safe*2,font:fonts.sans,size:11,color:white,maxLines:2});
+  for (const [index,page] of book.pages.filter((page)=>page.kind!=='cover').slice(0,24).entries()) {
+    const target = document.addPage([width,height]);
+    // Empty photo layouts become text layouts; missing assets never produce fake images.
+    const photoIds = page.mediaIds.filter((id)=>embedded.has(id));
+    const content = { ...page, mediaIds:photoIds, layout: !photoIds.length ? 'minimal' as const : page.layout };
+    drawInteriorPage(target,content,index+1,embedded,fonts,{...colors,light:cmyk(0,0,0,0)});
+    if (page.kind==='interactive' && input.memoryUrl) {
+      const qr = await document.embedPng(await QRCode.toBuffer(input.memoryUrl,{width:600,margin:1,errorCorrectionLevel:'H'}));
+      target.drawImage(qr,{x:width/2-45,y:safe+40,width:90,height:90});
+    }
+  }
+  const back = document.addPage([width,height]);
+  back.drawRectangle({x:0,y:0,width,height,color:colors.dark});
+  const closing = book.locale==='en'?'Every home has a story.':'Chaque maison a une histoire.';
+  back.drawText(closing,{x:(width-fonts.serif.widthOfTextAtSize(closing,20))/2,y:height*.58,font:fonts.serif,size:20,color:white});
+  const logo = await document.embedPng(input.logoPng);
+  const logoWidth = 135; const logoHeight = logoWidth*logo.height/logo.width;
+  back.drawRectangle({x:(width-logoWidth)/2-8,y:safe-8,width:logoWidth+16,height:logoHeight+16,color:white});
+  back.drawImage(logo,{x:(width-logoWidth)/2,y:safe,width:logoWidth,height:logoHeight});
+  document.setTitle(book.title);document.setAuthor('Emilie Cauvier Inc.');
+  const pdf = await document.save();
+  return { pdf, pageCount:document.getPageCount(), width, height, warnings };
 }
 
 export async function buildPrintPdfs(input: PrintPdfInput): Promise<PrintPdfResult> {

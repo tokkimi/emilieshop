@@ -1,6 +1,6 @@
 'use client';
 
-import { createElement, useEffect, useRef, type KeyboardEvent } from 'react';
+import { createElement, useEffect, useRef, type KeyboardEvent, type DragEvent } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { BookPage, GeneratedBook } from '../../lib/book';
 import { coverColor, pageColor } from '../../lib/book-design';
@@ -41,6 +41,7 @@ export type PageViewProps = {
   onChange?: (changes: Partial<BookPage>) => void;
   onBookChange?: (changes: Partial<GeneratedBook>) => void;
   onPhotoSlot?: (slot: number) => void;
+  onPhotoDrop?: (event: DragEvent<HTMLElement>, slot: number) => void;
 };
 
 function slotCount(page: BookPage) {
@@ -49,7 +50,7 @@ function slotCount(page: BookPage) {
   return 1;
 }
 
-export function BookPageView({ page, book, index, photoUrl, qrUrl, editable = false, en = false, onChange, onBookChange, onPhotoSlot }: PageViewProps) {
+export function BookPageView({ page, book, index, photoUrl, qrUrl, editable = false, en = false, onChange, onBookChange, onPhotoSlot, onPhotoDrop }: PageViewProps) {
   const isCover = page.kind === 'cover';
   const cover = coverColor(book.coverColor);
   const paper = pageColor(book.pageColor);
@@ -65,8 +66,8 @@ export function BookPageView({ page, book, index, photoUrl, qrUrl, editable = fa
         const photo = photos[slot];
         if (!photo && !editable) return <div key={slot} className="bk-photo bk-photo-blank" />;
         return (
-          <button key={slot} type="button" className={`bk-photo ${photo ? '' : 'bk-photo-empty'}`} disabled={!editable} onClick={(event) => { event.stopPropagation(); onPhotoSlot?.(slot); }} aria-label={en ? 'Choose a photo' : 'Choisir une photo'}>
-            {photo ? <img src={photo.url} alt="" style={isCover ? { objectPosition: `${book.coverCropX ?? 50}% ${book.coverCropY ?? 50}%` } : undefined} /> : <span>{en ? '+ Photo' : '+ Photo'}</span>}
+          <button key={slot} type="button" className={`bk-photo ${photo ? '' : 'bk-photo-empty'}`} disabled={!editable} onDragOver={editable ? (event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } : undefined} onDrop={editable ? (event) => { event.preventDefault(); event.stopPropagation(); onPhotoDrop?.(event, slot); } : undefined} onClick={(event) => { event.stopPropagation(); onPhotoSlot?.(slot); }} aria-label={en ? 'Choose or drop photos' : 'Choisir ou déposer des photos'}>
+            {photo ? <img src={photo.url} alt="" draggable={false} style={{ objectFit: book.media.find((item) => item.id === photo.id)?.fit || 'contain', ...(isCover ? { objectPosition: `${book.coverCropX ?? 50}% ${book.coverCropY ?? 50}%` } : {}) }} /> : <span>{en ? '+ Drop photos' : '+ Déposer des photos'}</span>}
           </button>
         );
       })}

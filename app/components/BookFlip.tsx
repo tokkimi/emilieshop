@@ -1,20 +1,21 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { GeneratedBook } from '../../lib/book';
+import type { BookMedia, GeneratedBook } from '../../lib/book';
 import { BookBackCover } from './BookBackCover';
 import { BookPageView } from './BookPageView';
 
 type Turn = { dir: 1 | -1; to: number } | null;
 
 // Feuilletage : couverture seule, puis doubles pages avec effet de page qui tourne.
-export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: GeneratedBook; photoUrl: (id: string) => string | undefined; qrUrl?: string; en: boolean; onClose: () => void }) {
+export function BookFlip({ book, photoUrl, qrUrl, en, onClose, livingMedia = [] }: { book: GeneratedBook; photoUrl: (id: string) => string | undefined; qrUrl?: string; en: boolean; onClose: () => void; livingMedia?: BookMedia[] }) {
   const spreads = useMemo(() => {
     const list: (number | null)[][] = [[null, 0]];
     for (let index = 1; index < book.pages.length; index += 2) list.push([index, index + 1 < book.pages.length ? index + 1 : null]);
     if (book.printProvider === 'prodigi') list.push([book.pages.length, null]);
     return list;
   }, [book.pages.length, book.printProvider]);
+  const [showMedia, setShowMedia] = useState(false);
   const [current, setCurrent] = useState(0);
   const [turn, setTurn] = useState<Turn>(null);
 
@@ -61,11 +62,12 @@ export function BookFlip({ book, photoUrl, qrUrl, en, onClose }: { book: Generat
             </div>
           ) : null}
         </div>
-        <div className="bf-controls">
+        <div className="bf-controls">{livingMedia.length>0&&<button type="button" onClick={()=>setShowMedia(!showMedia)}>{en?"Films & voices":"Films & voix"}</button>}
           <button type="button" onClick={() => go(-1)} disabled={current === 0}>←</button>
           <span>{backOnly ? (en ? 'Back cover' : 'Quatrième de couverture') : current === 0 ? (en ? 'Cover' : 'Couverture') : `${en ? 'Pages' : 'Pages'} ${spreads[current].filter((v) => v !== null).join('–')}`}</span>
           <button type="button" onClick={() => go(1)} disabled={current === spreads.length - 1}>→</button>
         </div>
+        {showMedia&&<div className="bf-media">{livingMedia.map((item)=><figure key={item.id}><figcaption>{item.name}</figcaption>{item.kind==='video'?<video src={item.previewUrl} controls playsInline preload="metadata"/>:<audio src={item.previewUrl} controls preload="metadata"/>}</figure>)}</div>}
       </div>
     </div>
   );

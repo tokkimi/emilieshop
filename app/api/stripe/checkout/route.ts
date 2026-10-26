@@ -8,6 +8,7 @@ import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration=300;
 const postSchema = z.object({ orderId: z.string().uuid() });
 
 export async function POST(request: Request) {

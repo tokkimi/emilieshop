@@ -4,6 +4,7 @@ import { markOrderPaidFromCheckout } from '../../../../lib/stripe-payments';
 import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
 
 export const runtime = 'nodejs';
+export const maxDuration=300;
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {

@@ -7,7 +7,7 @@ export function SiteHeader({ compact = false, locale = 'fr' }: { compact?: boole
     <header className={`site-header ${compact ? 'header-compact' : ''}`}>
       <Link className="brand" href={en ? '/en' : '/'} aria-label={`Mémoire Maison - ${en ? 'Home' : 'Accueil'}`}>
         <img className="brand-full" src="/memoire-maison-logo.png" alt="Mémoire Maison" width="585" height="180" />
-        <span className="brand-compact"><span className="brand-mark">M</span><span>Mémoire Maison</span></span>
+        <span className="brand-compact"><img className="brand-signature" src="/memoire-maison-logo.png" alt="Mémoire Maison"/><span>Mémoire Maison</span></span>
       </Link>
       <nav className="main-nav" aria-label="Navigation principale">
         <Link href={en ? '/en#how' : '/#comment'}>{en ? 'How it works' : 'Comment ça marche'}</Link>
@@ -28,7 +28,7 @@ export function SiteFooter({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
   const en = locale === 'en';
   return (
     <footer className="site-footer">
-      <div><div className="brand footer-brand"><span className="brand-mark">M</span><span>Mémoire Maison</span></div><p>{en ? <>Preserving the story of places,<br />one chapter at a time.</> : <>Conserver l’histoire des lieux,<br />un chapitre à la fois.</>}</p></div>
+      <div><div className="brand footer-brand"><img className="brand-signature" src="/memoire-maison-logo.png" alt="Mémoire Maison"/><span>Mémoire Maison</span></div><p>{en ? <>Preserving the story of places,<br />one chapter at a time.</> : <>Conserver l’histoire des lieux,<br />un chapitre à la fois.</>}</p></div>
       <div><h4>{en ? 'Explore' : 'Explorer'}</h4><Link href={en ? '/en#how' : '/#comment'}>{en ? 'How it works' : 'Comment ça marche'}</Link><Link href={en ? '/en#collections' : '/#collections'}>Collections</Link><Link href={en ? '/en/studio' : '/atelier'}>{en ? 'Create my book' : 'Créer mon livre'}</Link></div>
       <div><h4>{en ? 'Professionals' : 'Professionnels'}</h4><Link href={en ? '/en/professionals' : '/professionnels'}>{en ? 'Realtor offer' : 'Offre courtiers'}</Link><a href="mailto:emilie@equipecauvier.com">{en ? 'Contact us' : 'Nous écrire'}</a></div>
       <div><h4>{en ? 'Receive our stories' : 'Recevoir nos histoires'}</h4><p>{en ? 'A gentle letter about home, memory and new beginnings.' : 'Une lettre douce sur la maison, la mémoire et les nouveaux départs.'}</p><NewsletterForm locale={locale} /></div>

@@ -1,5 +1,16 @@
 import type { BookMedia, GeneratedBook } from './book';
 
+export function placePhotosOnPage(book: GeneratedBook, pageIndex: number, ids: string[], slot = 0): GeneratedBook {
+  const page = book.pages[pageIndex];
+  if (!page || page.kind === 'interactive') return book;
+  const valid = new Set(book.media.filter((item) => item.kind === 'photo').map((item) => item.id));
+  const capacity = page.kind === 'cover' ? 1 : 4;
+  const before = page.mediaIds.filter((id) => valid.has(id)).slice(0, Math.min(slot, capacity - 1));
+  const mediaIds = Array.from(new Set([...before, ...ids.filter((id) => valid.has(id)), ...page.mediaIds.filter((id) => valid.has(id))])).slice(0, capacity);
+  const layout = mediaIds.length > 1 ? 'collage' : page.layout === 'minimal' || page.layout === 'collage' ? 'full-photo' : page.layout;
+  return { ...book, pages: book.pages.map((item, index) => index === pageIndex ? { ...item, kind: item.kind === 'closing' ? 'gallery' : item.kind, mediaIds, layout } : item) };
+}
+
 // Use measurable image properties; this does not claim to recognise people or places.
 export function selectCoverPhoto(media: BookMedia[], variation = 0): BookMedia | undefined {
   const photos = media.filter((item) => item.kind === 'photo');

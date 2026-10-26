@@ -1,6 +1,7 @@
 export type BookLocale = 'fr' | 'en';
 export type BookPageKind = 'cover' | 'story' | 'gallery' | 'quote' | 'timeline' | 'interactive' | 'closing';
 export type BookMedia = {
+  fit?: 'contain' | 'cover';
   width?: number;
   height?: number;
   fingerprint?: string;
@@ -57,6 +58,13 @@ export type BookGenerationInput = {
 
 export const BOOK_STORAGE_KEY = 'memoire-maison-current-book';
 export const STUDIO_STORAGE_KEY = 'memoire-maison-studio-draft';
+
+export function bookApprovalSource(book: GeneratedBook): string {
+  const clean = bookForStorage(book);
+  const value = { ...clean, updatedAt: undefined, media: clean.media.map(({ previewUrl: _url, ...item }) => item) };
+  const stable = (input: unknown): unknown => Array.isArray(input) ? input.map(stable) : input && typeof input === 'object' ? Object.fromEntries(Object.entries(input).filter(([,value])=>value!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>[key,stable(value)])) : input;
+  return JSON.stringify(stable(value));
+}
 
 export function bookForStorage(book: GeneratedBook): GeneratedBook {
   return {

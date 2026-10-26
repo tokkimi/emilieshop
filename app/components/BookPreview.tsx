@@ -1,14 +1,14 @@
 'use client';
 
 import '../book-editor.css';
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from './SafeLink';
 import { uploadMedia } from '../../lib/upload-media';
 import { loadLocalMedia, saveLocalMedia } from '../../lib/client-media';
-import { BOOK_STORAGE_KEY, bookForStorage, ensureCompleteBook, fallbackBook, type BookLocale, type BookMedia, type BookPage, type GeneratedBook } from '../../lib/book';
-import { COVER_COLORS, PAGE_COLORS, PRINT_TRIM } from '../../lib/book-design';
+import { BOOK_STORAGE_KEY, bookApprovalSource, bookForStorage, ensureCompleteBook, fallbackBook, type BookLocale, type BookMedia, type BookPage, type GeneratedBook } from '../../lib/book';
+import { PAGE_COLORS, PRINT_TRIM } from '../../lib/book-design';
 import { CART_STORAGE_KEY, calculateCatalogSubtotal, formatCad } from '../../lib/catalog';
-import { selectCoverPhoto } from '../../lib/book-layout';
+import { selectCoverPhoto, placePhotosOnPage } from '../../lib/book-layout';
 import { photoMetadata } from '../../lib/photo-metadata';
 import { BookPageView } from './BookPageView';
 import { BookFlip } from './BookFlip';
@@ -63,9 +63,14 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [copied, setCopied] = useState(false);
   const [flipOpen, setFlipOpen] = useState(false);
   const [coverVariation, setCoverVariation] = useState(0);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [dropNotice, setDropNotice] = useState('');
+  const [proofHref, setProofHref] = useState('');
+  const [proofBusy, setProofBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const profile = en ? '/en/profile' : '/profil';
-  const studio = en ? '/en/studio' : '/atelier';
+  const studio = book.printProvider ? `${en?'/en/studio':'/atelier'}/${book.printProvider}` : en ? '/en/studio' : '/atelier';
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -158,12 +163,18 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const updateBook = (changes: Partial<GeneratedBook>) => edit((current) => ({ ...current, ...changes }));
 
   const placePhoto = (mediaId: string) => {
-    if (!page) return;
-    const target = slot ?? page.mediaIds.length;
-    const ids = [...page.mediaIds.filter((id) => mediaById.get(id)?.kind === 'photo')];
-    if (target < ids.length) ids[target] = mediaId; else ids.push(mediaId);
-    updatePage(active, { mediaIds: Array.from(new Set(ids)).slice(0, 4) });
+    edit((current) => placePhotosOnPage(current, active, [mediaId], slot ?? current.pages[active].mediaIds.length));
     setSlot(null);
+  };
+  const placeSelection = (ids: string[], targetSlot = 0) => {
+    edit((current) => placePhotosOnPage(current, active, ids, targetSlot));
+    setSelectedPhotos([]); setSlot(null);
+    setDropNotice(tr('Photos placées. Jusqu’à quatre par page ; les autres restent dans la bibliothèque.', 'Photos placed. Up to four per page; the others remain in the library.'));
+  };
+  const handleDrop = (event: DragEvent<HTMLElement>, targetSlot = 0) => {
+    event.preventDefault(); event.stopPropagation();
+    if (event.dataTransfer.files.length) { void importFiles(Array.from(event.dataTransfer.files), { page: active, slot: targetSlot }); return; }
+    try { const ids: unknown = JSON.parse(event.dataTransfer.getData('application/x-memoire-photos')); if (Array.isArray(ids)) placeSelection(ids.filter((id): id is string => typeof id === 'string'), targetSlot); } catch { /* Ignore unrelated dragged content. */ }
   };
   const removePhoto = (mediaId: string) => page && updatePage(active, { mediaIds: page.mediaIds.filter((id) => id !== mediaId) });
 
@@ -174,14 +185,18 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
     setActive(target);
   };
 
-  const addFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
+  const addFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []); event.target.value = '';
+    void importFiles(files, slot !== null ? { page: active, slot } : undefined);
+  };
+  const importFiles = async (files: File[], target?: { page: number; slot: number }) => {
     if (!files.length) return;
+    files = files.slice(0, Math.max(0, 40-book.media.length));
     setUploadError('');
     setUploading((value) => value + files.length);
     const additions: BookMedia[] = [];
     for (const file of files) {
+      if (!/^(image|video|audio)\//.test(file.type)) { setUploadError(tr('Choisissez des photos, vidéos ou fichiers audio.', 'Choose photos, video or audio files.')); setUploading((value) => Math.max(0, value-1)); continue; }
       const kind = file.type.startsWith('video/') ? 'video' as const : file.type.startsWith('audio/') ? 'audio' as const : 'photo' as const;
       let item: BookMedia | null = null;
       if (book.projectId) {
@@ -195,13 +210,16 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
           continue;
         }
       }
-      if (!item) { const id = crypto.randomUUID(); await saveLocalMedia(id, file); item = { id, name: file.name, kind, previewUrl: URL.createObjectURL(file), storageKey: id }; }
+      if (!item) { const id = crypto.randomUUID(); try { await saveLocalMedia(id, file); } catch { setUploadError(tr('Sauvegarde locale impossible.', 'Local save failed.')); setUploading((value)=>Math.max(0,value-1)); continue; } item = { ...(await photoMetadata(file)), id, name: file.name, kind, previewUrl: URL.createObjectURL(file), storageKey: id }; }
       additions.push(item);
       setUploading((value) => Math.max(0, value - 1));
     }
-    edit((current) => ({ ...current, media: [...current.media, ...additions] }));
-    const firstPhoto = additions.find((item) => item.kind === 'photo');
-    if (firstPhoto && slot !== null) placePhoto(firstPhoto.id);
+    edit((current) => {
+      const updated = { ...current, media: [...current.media, ...additions] };
+      return target ? placePhotosOnPage(updated, target.page, additions.filter((item) => item.kind === 'photo').map((item) => item.id), target.slot) : updated;
+    });
+    if (target) setDropNotice(tr('Photos déposées et placées sur la page.', 'Photos dropped and placed on the page.'));
+    setSlot(null);
   };
 
   const composeCover = () => {
@@ -211,13 +229,24 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
     setCoverVariation((value) => value + 1); setActive(0); setTab('layouts');
   };
 
-  const openCheckout = () => { setApprovalError(''); setConfirmed(false); setCheckoutOpen(true); };
+  const prepareProof = async () => {
+    if (!book.projectId) {setApprovalError(tr('Enregistrez le livre dans votre compte avant de préparer le PDF.', 'Save the book to your account before preparing the PDF.'));return;}
+    setProofBusy(true);setApprovalError('');setProofHref('');
+    try{
+      const saved=await fetch(`/api/book-generations/${book.id}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({book:bookForStorage(book),version:book.version,status:'ready'})});
+      if(!saved.ok)throw new Error(tr('Sauvegarde impossible.', 'Unable to save.'));
+      const response=await fetch(`/api/projects/${book.projectId}/print-proof`);
+      if(!response.ok){const result=await response.json() as {error?:string};throw new Error(result.error||tr('Fichier indisponible.', 'File unavailable.'));}
+      setProofHref(URL.createObjectURL(await response.blob()));
+    }catch(error){setApprovalError(error instanceof Error?error.message:'Erreur');}finally{setProofBusy(false);}
+  };
+  const openCheckout = () => { setApprovalError(''); setConfirmed(false); setProofHref(''); setCheckoutOpen(true); };
   const approveAndPay = async () => {
     if (!book.projectId) { setApprovalError(tr('Ce livre n’est pas encore enregistré dans un compte. Revenez à l’atelier.', 'This book is not saved to an account yet. Return to the studio.')); return; }
     setApproving(true); setApprovalError('');
     try {
       const stored = bookForStorage(book);
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(stored)));
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bookApprovalSource(stored)));
       const versionHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
       const saved = await fetch(`/api/book-generations/${encodeURIComponent(book.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ book: stored, version: book.version, status: 'ready' }) });
       if (!saved.ok) throw new Error('save');
@@ -241,7 +270,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
         <button type="button" className="bk-ghost" onClick={() => {setActive(0);setTab("layouts");}}>{tr("Couverture", "Cover")}</button><span role="status" className={`bk-save ${saveState}`}>{saveState === 'error' ? tr('Échec de sauvegarde — copie locale conservée', 'Save failed — local copy retained') : saveState === 'saved' ? (book.projectId ? tr('✓ Enregistré', '✓ Saved') : tr('✓ Enregistré sur cet appareil', '✓ Saved on this device')) : tr('Enregistrement…', 'Saving…')}</span>
         <div className="bk-top-actions">
           <button type="button" className="bk-ghost" onClick={() => setFlipOpen(true)}>{tr('Feuilleter le livre', 'Flip through')}</button>
-          {book.printProvider ? <Link className="bk-pay" href={`${en ? '/en' : ''}/creation/${book.printProvider}`}>{tr('Retour au test imprimeur', 'Return to printer test')} →</Link> : <button type="button" className="bk-pay" onClick={openCheckout} disabled={!restored}>{tr('Payer et imprimer', 'Pay and print')}{price ? ` · ${formatCad(price, locale)}` : ''} →</button>}
+          <button type="button" className="bk-pay" onClick={openCheckout} disabled={!restored}>{tr('Payer et imprimer', 'Pay and print')}{price ? ` · ${formatCad(price, locale)}` : ''} →</button>
         </div>
       </header>
 
@@ -261,9 +290,9 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
                 <button type="button" className="bk-upload" onClick={() => fileInput.current?.click()}>{uploading ? tr(`Envoi… (${uploading})`, `Uploading… (${uploading})`) : tr('+ Ajouter des photos, vidéos ou voix', '+ Add photos, videos or voices')}</button>
                 {uploadError && <p role="alert">{uploadError}</p>}
                 <input ref={fileInput} type="file" hidden multiple accept="image/*,video/*,audio/*" onChange={addFiles} />
-                <div className="bk-tray">
+                <div className="bk-selection-tools"><button type="button" onClick={() => {setMultiSelect(!multiSelect);setSelectedPhotos([]);}}>{multiSelect ? tr('Terminer la sélection','Finish selection') : tr('Sélectionner plusieurs','Select multiple')}</button>{selectedPhotos.length > 0 && <button type="button" onClick={() => placeSelection(selectedPhotos, slot ?? 0)}>{tr('Placer la sélection','Place selection')} ({selectedPhotos.length})</button>}</div>{dropNotice && <p role="status" className="bk-hint">{dropNotice}</p>}<div className="bk-tray">
                   {photos.map((item) => (
-                    <button key={item.id} type="button" className={`bk-tray-item ${page?.mediaIds.includes(item.id) ? 'on-page' : ''}`} onClick={() => placePhoto(item.id)}>
+                    <button key={item.id} type="button" className={`bk-tray-item ${page?.mediaIds.includes(item.id) ? 'on-page' : ''} ${selectedPhotos.includes(item.id) ? 'selected-photo' : ''}`} aria-pressed={selectedPhotos.includes(item.id)} aria-label={item.name} draggable onDragStart={(event) => { const ids = selectedPhotos.includes(item.id) ? selectedPhotos : [item.id]; event.dataTransfer.setData('application/x-memoire-photos', JSON.stringify(ids)); event.dataTransfer.effectAllowed = 'copy'; }} onClick={(event) => { if (multiSelect || event.ctrlKey || event.metaKey || event.shiftKey) setSelectedPhotos((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current,item.id]); else placePhoto(item.id); }}>
                       {item.previewUrl ? <img src={item.previewUrl} alt="" /> : <span>▧</span>}
                       {usedIds.has(item.id) ? <i>✓</i> : null}
                     </button>
@@ -277,6 +306,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
                     ))}
                   </div>
                 ) : null}
+                {page?.mediaIds.some((id)=>mediaById.get(id)?.kind==='photo')&&<div className="bk-onpage-fit"><p>{tr('Cadrage des photos','Photo framing')}</p>{page.mediaIds.filter((id)=>mediaById.get(id)?.kind==='photo').map((id)=><button type="button" key={id} onClick={()=>edit((current)=>({...current,media:current.media.map((item)=>item.id===id?{...item,fit:item.fit==='cover'?'contain':'cover'}:item)}))}>{mediaById.get(id)?.fit==='cover'?tr('Recadrée · afficher entière','Cropped · show full image'):tr('Entière · choisir un recadrage','Full image · choose cropping')}</button>)}</div>}
                 {living.length ? <p className="bk-hint">{tr(`${living.length} vidéo(s) ou voix : elles sont dans le Memory Link.`, `${living.length} video(s) or voice(s): they live in the Memory Link.`)}</p> : null}
               </>
             ) : null}
@@ -300,8 +330,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
             ) : null}
             {tab === 'colors' ? (
               <>
-                <p className="bk-label">{tr('Couverture', 'Cover')}</p>
-                <div className="bk-swatches">{COVER_COLORS.map((color) => <button key={color.id} type="button" title={color.label[locale]} className={(book.coverColor || 'white') === color.id ? 'active' : ''} style={{ background: color.bg }} onClick={() => updateBook({ coverColor: color.id })} />)}</div>
+                <p className="bk-hint">{tr('Édition signature · bleu nuit', 'Signature edition · midnight blue')}</p>
                 <p className="bk-label">{tr('Fond des pages', 'Page background')}</p>
                 <div className="bk-swatches">{PAGE_COLORS.map((color) => <button key={color.id} type="button" title={color.label[locale]} className={(book.pageColor || 'white') === color.id ? 'active' : ''} style={{ background: color.bg }} onClick={() => updateBook({ pageColor: color.id })} />)}</div>
                 <p className="bk-hint">{tr(`Format imprimé : ${PRINT_TRIM.label}, couverture rigide.`, `Print size: 8.5 × 11 in, hardcover.`)}</p>
@@ -323,8 +352,8 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
         </aside>
 
         <section className="bk-stage" onClick={() => setSlot(null)}>
-          <div className="bk-sheet">
-            {page ? <BookPageView page={page} book={book} index={active} photoUrl={photoUrl} qrUrl={memoryUrl || `${origin}/memory/demo`} editable en={en} onChange={(changes) => updatePage(active, changes)} onBookChange={updateBook} onPhotoSlot={(slotIndex) => choosePhotoSlot(active, slotIndex)} /> : null}
+          <div className="bk-sheet" onDragOver={(event) => {event.preventDefault();event.dataTransfer.dropEffect="copy";}} onDrop={(event) => handleDrop(event)}>
+            {page ? <BookPageView page={page} book={book} index={active} photoUrl={photoUrl} qrUrl={memoryUrl || `${origin}/memory/demo`} editable en={en} onChange={(changes) => updatePage(active, changes)} onBookChange={updateBook} onPhotoDrop={handleDrop} onPhotoSlot={(slotIndex) => choosePhotoSlot(active, slotIndex)} /> : null}
           </div>
           <div className="bk-pager">
             <button type="button" onClick={(event) => { event.stopPropagation(); setActive((value) => Math.max(0, value - 1)); }} disabled={active === 0}>←</button>
@@ -352,9 +381,9 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
             <button type="button" className="bk-close" onClick={() => setCheckoutOpen(false)} aria-label={tr('Fermer', 'Close')}>×</button>
             <h2>{tr('Prêt à imprimer ?', 'Ready to print?')}</h2>
             <p>{tr(`Votre livre sera imprimé tel qu’affiché (${book.pages.length - 1} pages, ${PRINT_TRIM.label}, couverture rigide).`, `Your book will be printed exactly as shown (${book.pages.length - 1} pages, 8.5 × 11 in, hardcover).`)}</p>
-            <label className="bk-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>{tr('J’ai relu toutes les pages et je valide cette version pour l’impression.', 'I reviewed every page and approve this version for printing.')}</span></label>
+            <button type="button" className="bk-upload" onClick={()=>void prepareProof()} disabled={proofBusy}>{proofBusy?tr('Préparation du fichier…','Preparing file…'):tr('1. Préparer le bon à tirer PDF','1. Prepare the final print PDF')}</button>{proofHref&&<a className="bk-upload" href={proofHref} target="_blank" rel="noreferrer">{tr('2. Ouvrir et vérifier le PDF final','2. Open and review the final PDF')} ↗︎</a>}<label className="bk-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>{tr('J’ai relu toutes les pages et je valide cette version pour l’impression.', 'I reviewed every page and approve this version for printing.')}</span></label>
             {approvalError ? <p className="bk-error" role="alert">{approvalError}</p> : null}
-            <button type="button" className="bk-pay wide" disabled={!confirmed || approving} onClick={approveAndPay}>{approving ? tr('Un instant…', 'One moment…') : tr('Continuer vers le paiement →', 'Continue to payment →')}</button>
+            <button type="button" className="bk-pay wide" disabled={!confirmed || approving || !proofHref || proofBusy} onClick={approveAndPay}>{approving ? tr('Un instant…', 'One moment…') : tr('Continuer vers le paiement →', 'Continue to payment →')}</button>
           </div>
         </div>
       ) : null}

@@ -1,3 +1,5 @@
+import { after } from 'next/server';
+import { fulfilProdigiOrder } from './prodigi-fulfilment';
 import type Stripe from 'stripe';
 import { formatCad } from './catalog';
 import { createSupabaseAdminClient } from './supabase/server';
@@ -13,7 +15,7 @@ export async function markOrderPaidFromCheckout(session: PaymentSession) {
   const { data: order } = await admin.from('orders').select('*').eq('id', orderId).maybeSingle();
   if (!order || order.owner_id !== session.metadata?.ownerId) throw new Error('order');
   if (session.amount_total !== order.total_cents || session.currency?.toUpperCase() !== order.currency) throw new Error('amount');
-  if (['paid','preflight','printing','shipped','delivered'].includes(order.status)) return { updated: false, reason: 'already-paid', order } as const;
+  if (['paid','preflight','printing','shipped','delivered'].includes(order.status)) { after(async()=>{try{await fulfilProdigiOrder(order.id);}catch{console.error('Print fulfilment queued for retry');}}); return { updated: false, reason: 'already-paid', order } as const; }
   const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null;
   const paidAt = new Date().toISOString();
   const { error } = await admin.from('orders').update({
@@ -35,5 +37,6 @@ export async function markOrderPaidFromCheckout(session: PaymentSession) {
     total: formatCad(order.total_cents, order.locale),
     locale: order.locale,
   });
+  after(async()=>{try{await fulfilProdigiOrder(order.id);}catch{console.error('Print fulfilment queued for retry');}});
   return { updated: true, order: { ...order, status: 'paid' } } as const;
 }

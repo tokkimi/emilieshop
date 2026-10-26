@@ -14,7 +14,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const input = await request.json() as { book?: unknown; version?: number; status?: string };
   if (hasSupabasePublicConfig()) {
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase!.from('book_generations').update({ result_data: input.book || {}, version: Number(input.version || 1), status: String(input.status || 'ready').slice(0, 20), updated_at: new Date().toISOString() }).eq('id', id).eq('owner_id', user.userId).select('id').maybeSingle();
+    const { data, error } = await supabase!.from('book_generations').update({ result_data: input.book || {}, version: Number(input.version || 1), status: String(input.status || 'ready').slice(0, 20), updated_at: new Date().toISOString() }).eq('id', id).eq('owner_id', user.userId).lte('version', Number(input.version || 1)).select('id').maybeSingle();
     if (error || !data) return NextResponse.json({ error: 'Aperçu introuvable' }, { status: 404 });
     return NextResponse.json({ ok: true });
   }

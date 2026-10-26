@@ -276,7 +276,7 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
               ))
             ) : (
               <article className="panel empty-project">
-                <span className="brand-mark">M</span>
+                <img className="brand-signature" src="/memoire-maison-logo.png" alt="Mémoire Maison"/>
                 <h2>
                   {en
                     ? "Your first story starts here."

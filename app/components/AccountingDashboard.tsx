@@ -207,7 +207,7 @@ function QuickEntryForm({ kind, report, saved }: { kind: 'expense' | 'sale'; rep
       <p className="at-sub">{expense ? 'Facture fournisseur, abonnement, publicité, matériel…' : 'Vente hors site : salon, virement, comptant…'}</p>
       <div className="row">
         <label>Date<input name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></label>
-        <label>{expense ? 'Fournisseur' : 'Client'}<input name="party" required placeholder={expense ? 'ex. Prodigi, Mpix, Canva' : 'ex. Famille Tremblay'} /></label>
+        <label>{expense ? 'Fournisseur' : 'Client'}<input name="party" required placeholder={expense ? 'ex. Prodigi, Mpix, Meta' : 'ex. Famille Tremblay'} /></label>
       </div>
       <label>Description<input name="label" required minLength={2} placeholder={expense ? 'ex. Publicité Facebook octobre' : 'ex. Livre Souvenir — salon de l’habitation'} /></label>
       <div className="row">

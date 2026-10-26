@@ -11,7 +11,7 @@ export default function ResetPasswordPageEn() {
       <SiteHeader locale="en" compact />
       <main className="login-page">
         <section className="login-card">
-          <Link className="brand login-brand" href="/en"><span className="brand-mark">M</span><span>Mémoire Maison</span></Link>
+          <Link className="brand login-brand" href="/en"><img className="brand-signature" src="/memoire-maison-logo.png" alt="Mémoire Maison"/><span>Mémoire Maison</span></Link>
           <p className="eyebrow">Security</p>
           <h1>Choose a password.</h1>
           <p>Enter a new password for your account, then you will be redirected to your profile.</p>

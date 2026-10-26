@@ -1,5 +1,5 @@
 // Format de composition historique : 8,5 × 11 po (21,6 × 27,9 cm), portrait, couverture rigide.
-export const PRINT_TRIM = { widthIn: 8.5, heightIn: 11, label: '21,6 × 27,9 cm' } as const;
+export const PRINT_TRIM = { widthIn: 210/25.4, heightIn: 297/25.4, label: 'A4 · 21 × 29,7 cm' } as const;
 
 export type SwatchId = string;
 
