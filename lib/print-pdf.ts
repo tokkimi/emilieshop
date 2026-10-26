@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { ensureCompleteBook, type BookMedia, type BookPage, type GeneratedBook } from './book';
 
 const POINTS_PER_INCH = 72;
-// Lulu 8.5 × 11 in hardcover interior, including 0.125 in bleed on every edge.
+// 8.5 × 11 in hardcover interior, including 0.125 in bleed on every edge.
 const INTERIOR_WIDTH = 8.75 * POINTS_PER_INCH;
 const INTERIOR_HEIGHT = 11.25 * POINTS_PER_INCH;
 const TRIM_INSET = 0.125 * POINTS_PER_INCH;
