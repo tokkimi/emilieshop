@@ -61,6 +61,7 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
   });
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
+  const [payingOrder, setPayingOrder] = useState("");
   const refresh = async () => {
     const [p, o, a, t] = await Promise.all([
       fetch("/api/projects"),
@@ -157,6 +158,15 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
       ]);
       setDraft("");
     }
+  };
+  const resumePayment = async (orderId:string) => {
+    setPayingOrder(orderId);setNotice("");
+    try {
+      const response=await fetch('/api/stripe/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orderId})});
+      const result=await response.json() as {url?:string;error?:string};
+      if(!response.ok||!result.url)throw new Error(result.error||'Stripe indisponible');
+      window.location.assign(result.url);
+    } catch(error) {setNotice(error instanceof Error?error.message:(en?'Payment unavailable.':'Paiement indisponible.'));setPayingOrder('');}
   };
   return (
     <main className="profile-page">
@@ -266,7 +276,7 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
               ))
             ) : (
               <article className="panel empty-project">
-                <span className="brand-mark">M</span>
+                <img className="brand-signature" src="/memoire-maison-logo.png" alt="Mémoire Maison"/>
                 <h2>
                   {en
                     ? "Your first story starts here."
@@ -302,11 +312,13 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
                     <a href={order.tracking_url}>
                       {en ? "Track shipment" : "Suivre la livraison"}
                     </a>
+                  ) : order.status === 'awaiting_payment' ? (
+                    <button className="button button-small" disabled={payingOrder===order.id} onClick={()=>resumePayment(order.id)}>{payingOrder===order.id?(en?'Opening…':'Ouverture…'):(en?'Pay securely →':'Payer en toute sécurité →')}</button>
                   ) : (
                     <small>
                       {en
-                        ? "Payment and printing are not active yet."
-                        : "Paiement et impression non activés pour le moment."}
+                        ? "Payment received. Production tracking will appear here."
+                        : "Paiement reçu. Le suivi de production apparaîtra ici."}
                     </small>
                   )}
                 </article>
@@ -495,12 +507,6 @@ export function RealCustomerAccount({ name, email, locale = "fr" }: Props) {
               <button className="button button-small">
                 {en ? "Save" : "Enregistrer"}
               </button>
-            </article>
-            <article className="panel">
-              <h2>{en ? "Privacy & data" : "Confidentialité et données"}</h2>
-              <a className="button button-small" href="/api/account/export">
-                {en ? "Download my data" : "Télécharger mes données"}
-              </a>
             </article>
           </form>
         ) : null}

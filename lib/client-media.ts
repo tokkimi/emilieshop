@@ -53,6 +53,30 @@ export async function loadLocalMedia(id: string): Promise<string | undefined> {
   return asset ? URL.createObjectURL(asset.blob) : undefined;
 }
 
+export async function loadLocalFile(id: string): Promise<File | undefined> {
+  const database = await openDatabase();
+  try {
+    const asset = await new Promise<StoredAsset | undefined>((resolve, reject) => {
+      const request = database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return asset ? new File([asset.blob], asset.name, { type: asset.type }) : undefined;
+  } finally { database.close(); }
+}
+
+export async function listLocalFiles(): Promise<{ id: string; file: File }[]> {
+  const database = await openDatabase();
+  try {
+    const assets = await new Promise<StoredAsset[]>((resolve, reject) => {
+      const request = database.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return assets.map((asset) => ({ id: asset.id, file: new File([asset.blob], asset.name, { type: asset.type }) }));
+  } finally { database.close(); }
+}
+
 export async function removeLocalMedia(id: string) {
   const database = await openDatabase();
   await new Promise<void>((resolve, reject) => {

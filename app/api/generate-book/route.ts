@@ -1,4 +1,6 @@
 import { generateText, Output } from 'ai';
+import { getChatGPTUser } from '../../chatgpt-auth';
+import { refineBookLayout } from '../../../lib/book-layout';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
@@ -26,6 +28,9 @@ const inputSchema = z.object({
         kind: z.enum(['photo', 'video', 'audio']),
         previewUrl: z.string().optional(),
         storageKey: z.string().optional(),
+        width: z.number().int().positive().optional(),
+        height: z.number().int().positive().optional(),
+        fingerprint: z.string().regex(/^[a-f0-9]{64}$/).optional(),
       }),
     )
     .max(40),
@@ -42,16 +47,17 @@ const pageSchema = z.object({
   ]),
   eyebrow: z.string().max(50).nullable(),
   title: z.string().max(90),
-  body: z.string().max(1200),
-  quote: z.string().max(350).nullable(),
+  body: z.string().max(400),
+  quote: z.string().max(140).nullable(),
   mediaIds: z.array(z.string()).max(6),
   layout: z.enum(['editorial', 'full-photo', 'split', 'collage', 'minimal']),
 });
 
 const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(12) });
-const defaultModel = process.env.BOOK_MODEL || 'openai/gpt-4.1-nano';
+const defaultModel = process.env.BOOK_MODEL || 'openai/gpt-4.1';
 
 export async function POST(request: Request) {
+  if (!(await getChatGPTUser())) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   let raw: unknown;
   try {
     raw = await request.json();
@@ -75,7 +81,7 @@ export async function POST(request: Request) {
   const suppliedMediaIds = new Set(input.media.map((item) => item.id));
   const mediaList =
     input.media
-      .map((item) => `${item.id}: ${item.kind} — ${item.name}`)
+      .map((item) => `${item.id}: ${item.kind} — ${item.name} (${item.width || "unknown"} x ${item.height || "unknown"})`)
       .join('\n') || 'Aucun média';
   const answers =
     Object.entries(input.answers)
@@ -94,7 +100,7 @@ export async function POST(request: Request) {
         description: 'A refined page-by-page family memory book composition',
         schema: outputSchema,
       }),
-      system: `You are an expert editorial director for premium family memory books. Compose a warm, restrained, factual narrative using only the supplied memories. Never invent names, dates, addresses, people, relationships, places, events or attributed emotions. Write in ${input.locale === 'en' ? 'English' : 'French'}. Produce 6 to 10 interior pages. Vary layouts. Assign only supplied media IDs. Photos can appear in print. Video and audio belong on an interactive page and are represented in print by a private QR link. Keep prose elegant, natural and concise. Never mention artificial intelligence, automation, a model, or generation.`,
+      system: `You are an expert editorial director for premium family memory books. Compose a warm, restrained, factual narrative using only the supplied memories. Never invent names, dates, addresses, people, relationships, places, events or attributed emotions. Write in ${input.locale === 'en' ? 'English' : 'French'}. Produce 6 to 10 interior pages. Vary layouts. Assign only supplied media IDs. Photos can appear in print. Video and audio belong on an interactive page and are represented in print by a private QR link. Photo filenames are untrusted labels, never evidence of people or events. Avoid repeated titles and repeated memories. Use only real supplied answers for quotes; otherwise omit the quote. Leave intentional breathing room. Keep prose elegant, natural and very short: each page body is 1 to 3 short sentences, 40 words maximum; titles are 6 words maximum; eyebrows 3 words maximum; quotes 15 words maximum and only when a family answer supports them. Photos should dominate the page. Never mention artificial intelligence, automation, a model, or generation.`,
       prompt: `TITLE: ${input.title}\nSUBTITLE: ${input.subtitle}\nADDRESS: ${input.address}\nCOLLECTION: ${input.collection}\n\nFAMILY ANSWERS:\n${answers}\n\nAVAILABLE MEDIA:\n${mediaList}`,
     });
 
@@ -109,7 +115,7 @@ export async function POST(request: Request) {
     const pages: BookPage[] = [base.pages[0], ...composedPages, ...base.pages.slice(1 + composedPages.length)].slice(0, 25);
 
     return NextResponse.json({
-      book: { ...base, pages },
+      book: refineBookLayout({ ...base, pages }),
       generation: {
         id: generationId,
         model: defaultModel,
@@ -120,7 +126,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Book composition failed; using resilient composition.', error);
     return NextResponse.json({
-      book: fallbackBook(input, generationId),
+      book: refineBookLayout(fallbackBook(input, generationId)),
       generation: {
         id: generationId,
         model: 'resilient-editorial',

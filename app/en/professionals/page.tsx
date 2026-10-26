@@ -1,7 +1,12 @@
 import type {Metadata} from 'next';
 import Link from '../../components/SafeLink';
 import {SiteFooter,SiteHeader} from '../../components/SiteHeader';
-export const metadata:Metadata={title:'Closing gifts for realtors — Mémoire Maison',description:'Offer sellers a personalized memory book of their home with a simple professional workflow.'};
+import { seoMetadata } from '../../../lib/seo';
+export const revalidate = 300;
+export function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/en/professionals');
+}
+
 export default function EnglishProfessionals(){return <><SiteHeader locale="en"/><main className="pro-page">
   <section className="pro-hero"><div><p className="eyebrow">For real estate professionals</p><h1>A closing gift unlike any other.</h1><p>Give sellers a deeply personal experience without adding work to your team.</p><div className="hero-actions"><a className="button" href="#packs-en">Explore plans →</a><a className="quiet-link" href="mailto:emilie@equipecauvier.com">Talk to Emilie</a></div></div><div className="pro-portal-card"><div className="portal-head"><span>Professional portal</span><b>12 credits</b></div><h3>Hello, Beaulieu Team</h3><p>Your closing gifts, made simple.</p><div className="portal-metrics"><span><b>8</b>in progress</span><span><b>3</b>to approve</span><span><b>17</b>delivered</span></div><button>＋ Invite a seller</button></div></section>
   <section className="pro-benefits"><p className="eyebrow">Why it works</p><h2>More than an object. A beautiful final step in the transaction.</h2><div><article><span>01</span><h3>You invite</h3><p>Name, address and email are all you need.</p></article><article><span>02</span><h3>The family tells</h3><p>They answer, add media and approve their book.</p></article><article><span>03</span><h3>We produce</h3><p>Story, review, layout, printing and shipping are handled.</p></article><article><span>04</span><h3>You stay remembered</h3><p>Your message joins a keepsake that lasts for years.</p></article></div></section>

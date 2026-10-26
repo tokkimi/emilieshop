@@ -1,0 +1,101 @@
+/* Live admin modules (stats, clients, orders, SEO, logs, accounting). Plain CSS: the
+   production build does not run Tailwind. */
+.at-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.at-toolbar input[type=search]{min-width:220px;flex:1}
+.at-toolbar select,.at-toolbar input{border:1px solid var(--line);background:#fff;padding:9px 10px;font:12px var(--font-geist-sans);color:var(--ink);border-radius:4px}
+.at-seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff}
+.at-seg button{border:0;background:transparent;padding:8px 12px;font-size:11px;cursor:pointer;color:#5d6862}
+.at-seg button[aria-pressed=true],.at-seg button[aria-selected=true]{background:#1f332d;color:#fff}
+.at-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;padding:9px 12px;font-size:11px;border-radius:4px;cursor:pointer;color:var(--ink);text-decoration:none}
+.at-btn.primary{background:#1f332d;border-color:#1f332d;color:#fff}
+.at-btn.danger{color:#9a3b2c}
+.at-btn:disabled{opacity:.5;cursor:default}
+.at-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.at-kpis article{background:#fff;border:1px solid var(--line);padding:18px}
+.at-kpis p{margin:0 0 6px;font-size:10px;color:#7f8996;letter-spacing:.04em}
+.at-kpis b{display:block;font:28px Georgia,serif;color:var(--ink)}
+.at-kpis small{font-size:10px;color:#8b958f}
+.at-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.at-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.at-panel{background:#fff;border:1px solid var(--line);padding:20px;min-width:0}
+.at-panel h2{font:19px Georgia,serif;margin:0 0 4px}
+.at-panel>p.at-sub{margin:0 0 16px;font-size:10px;color:#8a958f}
+.at-empty{font-size:12px;color:#8a958f;padding:12px 0}
+.at-notice{margin:0;padding:10px 12px;border-radius:6px;background:#eef3ee;color:#2f5140;font-size:12px}
+.at-notice.error{background:#f8e9e5;color:#8a3324}
+
+/* Charts: one series, thin bars with rounded data ends, recessive axis. */
+.at-chart{position:relative}
+.at-chart svg{display:block;width:100%;height:auto;overflow:visible}
+.at-chart .grid{stroke:#ebe8e2;stroke-width:1}
+.at-chart .axis{font:10px var(--font-geist-sans);fill:#8a93a0}
+.at-chart .bar{fill:#2f526f;pointer-events:none}
+.at-chart .hit{fill:transparent;cursor:default}
+.at-chart .hit:hover+.bar,.at-chart .hit:focus+.bar{fill:#145c3d}
+.at-tip{position:absolute;pointer-events:none;background:#1f332d;color:#fff;font-size:11px;line-height:1.4;padding:7px 9px;border-radius:5px;white-space:nowrap;transform:translate(-50%,-110%);z-index:2}
+.at-tip strong{display:block;font-size:13px}
+.at-table-toggle{margin-top:8px;font-size:10px;background:none;border:0;padding:0;color:var(--sage);text-decoration:underline;cursor:pointer}
+.at-hbars{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+.at-hbars li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:12px;align-items:center}
+.at-hbars li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.at-hbars li b{font-weight:500;color:#4d5853;font-size:11px}
+.at-hbars li i{grid-column:1/-1;display:block;height:8px;border-radius:0 4px 4px 0;background:#2f526f;min-width:2px}
+.at-funnel{display:grid;gap:8px}
+.at-funnel div{display:grid;grid-template-columns:140px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:12px}
+.at-funnel i{display:block;height:22px;border-radius:0 4px 4px 0;background:#2f526f;min-width:2px}
+.at-funnel b{font-weight:500;text-align:right}
+
+/* Tables */
+.at-table{width:100%;border-collapse:collapse;font-size:12px}
+.at-table th{text-align:left;font-size:10px;font-weight:500;color:#7f8996;letter-spacing:.04em;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.at-table td{padding:10px 8px;border-bottom:1px solid #f0ede7;vertical-align:top}
+.at-table tr.clickable{cursor:pointer}
+.at-table tr.clickable:hover td{background:#faf8f4}
+.at-table .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.at-table .muted{color:#8a958f;font-size:11px}
+.at-scroll{overflow-x:auto}
+.at-pill{display:inline-block;padding:3px 8px;border-radius:99px;background:#eef1ec;color:#3f5248;font-size:10px;white-space:nowrap}
+.at-pill.good{background:#e3efe6;color:#245a3c}
+.at-pill.warn{background:#f6ecd8;color:#7a5a17}
+.at-pill.bad{background:#f6e3de;color:#8a3324}
+
+/* Side panel editor */
+.at-drawer-backdrop{position:fixed;inset:0;background:rgba(23,37,31,.35);z-index:60}
+.at-drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#fff;z-index:61;overflow:auto;padding:26px;box-shadow:-20px 0 60px rgba(0,0,0,.12)}
+.at-drawer h2{font:24px Georgia,serif;margin:0 0 4px}
+.at-drawer header{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:18px}
+.at-form{display:grid;gap:12px}
+.at-form .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.at-form label{display:grid;gap:5px;font-size:11px;color:#5d6862}
+.at-form input,.at-form select,.at-form textarea{border:1px solid var(--line);background:#fff;padding:10px;font:13px var(--font-geist-sans);color:var(--ink);border-radius:4px;width:100%}
+.at-form .check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink)}
+.at-form .check input{width:auto}
+.at-form .hint{font-size:10px;color:#8a958f}
+.at-form .hint.over{color:#9a3b2c}
+.at-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* SEO preview */
+.at-serp{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fff;font-family:arial,sans-serif;max-width:600px}
+.at-serp small{display:block;color:#4d5156;font-size:12px}
+.at-serp b{display:block;color:#1a0dab;font-size:18px;font-weight:400;margin:4px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.at-serp p{margin:0;color:#4d5156;font-size:13px;line-height:1.45}
+
+/* Logs */
+.at-log{display:grid;gap:2px;font-size:12px}
+.at-log details{border-bottom:1px solid #f0ede7;padding:9px 0}
+.at-log summary{display:grid;grid-template-columns:150px 170px minmax(0,1fr);gap:10px;cursor:pointer;list-style:none}
+.at-log summary::-webkit-details-marker{display:none}
+.at-log pre{white-space:pre-wrap;word-break:break-word;background:#faf8f4;padding:10px;font-size:11px;margin:8px 0 0}
+
+/* Mobile section picker (the sidebar is hidden on phones) */
+.at-mobile-nav{display:none;margin-bottom:16px}
+.at-mobile-nav select{width:100%;border:1px solid var(--line);background:#fff;padding:12px;font:14px var(--font-geist-sans);border-radius:6px}
+
+@media(max-width:900px){
+  .at-grid,.at-grid.three{grid-template-columns:1fr}
+  .at-mobile-nav{display:block}
+  .at-log summary{grid-template-columns:1fr}
+  .at-funnel div{grid-template-columns:110px minmax(0,1fr) 50px}
+  .at-form .row{grid-template-columns:1fr}
+}
+@media print{.admin-sidebar,.admin-top,.admin-readiness-banner,.at-toolbar,.at-drawer,.at-drawer-backdrop,.at-mobile-nav{display:none!important}}

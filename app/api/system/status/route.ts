@@ -1,21 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getLuluConfiguration } from '../../../../lib/lulu';
+import { getProdigiConfiguration } from '../../../../lib/prodigi';
 import { hasSupabaseAdminConfig, hasSupabasePublicConfig } from '../../../../lib/supabase/config';
+import { getStripeConfiguration } from '../../../../lib/stripe';
+import { createSupabaseAdminClient } from '../../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export function GET() {
-  const lulu = getLuluConfiguration();
+export async function GET() {
+  const prodigi = getProdigiConfiguration();
+  const stripe = getStripeConfiguration();
+  const admin = createSupabaseAdminClient();
+  let serverAdministration = false;
+  if (admin) {
+    const { error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
+    serverAdministration = !error;
+  }
   return NextResponse.json({
     database: hasSupabasePublicConfig(),
     privateStorage: hasSupabasePublicConfig(),
     authentication: hasSupabasePublicConfig(),
-    serverAdministration: hasSupabaseAdminConfig(),
-    lulu: lulu.configured,
-    luluOrders: lulu.ordersEnabled,
-    payments: Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
+    serverAdministration,
+    serverAdministrationConfigured: hasSupabaseAdminConfig(),
+    prodigi: prodigi.configured,
+    prodigiOrders: prodigi.ordersEnabled,
+    automaticPrintWorker: Boolean(prodigi.ordersEnabled && process.env.CRON_SECRET),
+    payments: stripe.configured,
+    stripe,
     transactionalEmail: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
-    bookComposition: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY),
+    bookComposition: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN),
     environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'development',
   }, { headers: { 'cache-control': 'no-store' } });
 }

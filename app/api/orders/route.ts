@@ -1,3 +1,6 @@
+import { printHash, type PrintSnapshot } from '../../../lib/prodigi-fulfilment';
+import { printerFromOptions } from '../../../lib/printers';
+import type { GeneratedBook } from '../../../lib/book';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getChatGPTUser } from '../../chatgpt-auth';
@@ -21,20 +24,43 @@ export async function POST(request:Request){
   const user=await getChatGPTUser();if(!user)return NextResponse.json({error:'Créez ou ouvrez votre compte avant de commander.'},{status:401});
   const parsed=schema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:'Les informations de commande sont incomplètes.'},{status:400});
   const input=parsed.data;const admin=createSupabaseAdminClient();if(!admin)return NextResponse.json({error:'Service de commande indisponible.'},{status:503});
-  const {data:project}=await admin.from('projects').select('id,title,status').eq('id',input.projectId).eq('owner_id',user.userId).maybeSingle();
+  const {data:project,error:projectError}=await admin.from('projects').select('id,title,status,options').eq('id',input.projectId).eq('owner_id',user.userId).maybeSingle();
+  if(projectError){
+    console.error('Order project lookup failed', {code:projectError.code});
+    return NextResponse.json({error:'La connexion sécurisée aux projets est indisponible. Vérifiez la configuration Supabase.',code:'SUPABASE_ADMIN_QUERY_FAILED'},{status:503});
+  }
   if(!project)return NextResponse.json({error:'Projet introuvable.'},{status:404});
-  const {data:approval}=await admin.from('approvals').select('approved_at,version').eq('project_id',input.projectId).eq('owner_id',user.userId).order('approved_at',{ascending:false}).limit(1).maybeSingle();
+  const {data:approval,error:approvalError}=await admin.from('approvals').select('id,approved_at,version,version_hash').eq('project_id',input.projectId).eq('owner_id',user.userId).order('approved_at',{ascending:false}).limit(1).maybeSingle();
+  if(approvalError){
+    console.error('Order approval lookup failed', {code:approvalError.code});
+    return NextResponse.json({error:'La validation du livre est momentanément indisponible.',code:'SUPABASE_APPROVAL_QUERY_FAILED'},{status:503});
+  }
   if(!approval)return NextResponse.json({error:'L’aperçu doit être approuvé avant la commande.'},{status:409});
-  const {data:generation}=await admin.from('book_generations').select('version').eq('project_id',input.projectId).eq('owner_id',user.userId).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  const {data:generation,error:generationError}=await admin.from('book_generations').select('id,version,result_data').eq('project_id',input.projectId).eq('owner_id',user.userId).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(generationError){
+    console.error('Order generation lookup failed', {code:generationError.code});
+    return NextResponse.json({error:'La version du livre est momentanément indisponible.',code:'SUPABASE_GENERATION_QUERY_FAILED'},{status:503});
+  }
   if(!generation||generation.version!==approval.version)return NextResponse.json({error:'Le livre a été modifié depuis la validation. Approuvez la nouvelle version.'},{status:409});
+  const book=generation.result_data as GeneratedBook;
+  const printer=printerFromOptions(project.options)||book.printProvider||'prodigi';
+  const hash=printHash(book);
+  if(hash!==approval.version_hash)return NextResponse.json({error:'Le livre doit être validé à nouveau avant de commander.'},{status:409});
+  const {data:proof}=await admin.from('site_settings').select('value').eq('key',`print_proof:${user.userId}:${input.projectId}`).maybeSingle();
+  if(proof?.value?.hash!==hash)return NextResponse.json({error:'Ouvrez et vérifiez le bon à tirer PDF de cette version avant de commander.'},{status:409});
+  const snapshot:PrintSnapshot={type:'print_snapshot',printer,book,hash,approvalId:approval.id,renderer:'prodigi-a4-v1'};
   const subtotalCents=calculateCatalogSubtotal(input.planId,input.addOnIds);assertSustainablePrice(input.planId,subtotalCents);
   const shippingCents=estimateShippingCents(input.shippingAddress.countryCode);
   const tax=estimateTax(subtotalCents+shippingCents,input.shippingAddress.countryCode,input.shippingAddress.regionCode);
   const taxCents=tax.taxCents||0;const totalCents=subtotalCents+shippingCents+taxCents;const plan=getPlan(input.planId);
   const id=crypto.randomUUID();const orderNumber=`MM-${new Date().toISOString().slice(0,10).replaceAll('-','')}-${crypto.randomUUID().slice(0,4).toUpperCase()}`;
-  const items=[{type:'book',code:plan.id,label:plan.name[input.locale],quantity:plan.copies,unitPriceCents:plan.priceCents},{type:'addons',codes:input.addOnIds}];
-  const {error}=await admin.from('orders').insert({id,order_number:orderNumber,project_id:input.projectId,owner_id:user.userId,status:'awaiting_payment',total_cents:totalCents,currency:'CAD',quantity:plan.copies,shipping_address:input.shippingAddress,print_approved_at:approval.approved_at,locale:input.locale,product_code:plan.id,unit_price_cents:plan.priceCents,subtotal_cents:subtotalCents,shipping_cents:shippingCents,tax_cents:taxCents,tax_rate_bps:tax.rateBps,tax_jurisdiction:`${input.shippingAddress.countryCode}-${input.shippingAddress.regionCode}`,items,customer_email:user.email,confirmation_email_status:'queued'});
-  if(error)return NextResponse.json({error:'La commande n’a pas pu être enregistrée.'},{status:503});
+  const quantity=plan.copies+(input.addOnIds.includes('extra-copy')?1:0);
+  const items=[{type:'book',code:plan.id,label:plan.name[input.locale],quantity,unitPriceCents:plan.priceCents},{type:'addons',codes:input.addOnIds},{type:'tax_estimate',rateBps:tax.rateBps,taxCents,label:tax.label,isFinal:tax.isFinal},snapshot];
+  const {error}=await admin.from('orders').insert({id,order_number:orderNumber,project_id:input.projectId,owner_id:user.userId,status:'awaiting_payment',total_cents:totalCents,currency:'CAD',quantity,shipping_address:input.shippingAddress,print_approved_at:approval.approved_at,locale:input.locale,product_code:plan.id,unit_price_cents:plan.priceCents,subtotal_cents:subtotalCents,shipping_cents:shippingCents,tax_cents:taxCents,tax_rate_bps:tax.rateBps!==null&&Number.isInteger(tax.rateBps)?tax.rateBps:null,tax_jurisdiction:`${input.shippingAddress.countryCode}-${input.shippingAddress.regionCode}`,items,customer_email:user.email,confirmation_email_status:'queued'});
+  if(error){
+    console.error('Order insert failed', {code:error.code});
+    return NextResponse.json({error:'La commande n’a pas pu être enregistrée.',code:'ORDER_INSERT_FAILED'},{status:503});
+  }
   const email=await queueAndSendOrderEmail({orderId:id,orderNumber,email:user.email,name:input.shippingAddress.name,total:formatCad(totalCents,input.locale),locale:input.locale});
   await admin.from('orders').update({confirmation_email_status:email.status}).eq('id',id);
   return NextResponse.json({order:{id,orderNumber,totalCents,status:'awaiting_payment'},emailStatus:email.status},{status:201});

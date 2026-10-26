@@ -1,4 +1,8 @@
+import type { Metadata } from 'next';
 import Link from './components/SafeLink';
+import { seoMetadata } from '../lib/seo';
+import { BookWheel } from './components/BookWheel';
+import { BookShowcase } from './components/BookShowcase';
 import { SiteFooter, SiteHeader } from './components/SiteHeader';
 
 const steps = [
@@ -8,24 +12,15 @@ const steps = [
   ['04', 'Validez', 'Relisez et modifiez chaque page avant toute impression.'],
 ];
 
-const books = [
-  ['Essentiel', 'Le livre qui rassemble.', '24 pages, couverture rigide et aperçu numérique.', '149 $'],
-  ['Souvenir', 'Une finition plus précieuse.', '24 pages, un livre rigide et Memory Link pendant 1 an.', '229 $'],
-  ['Famille', 'À transmettre entre générations.', '24 pages, 2 exemplaires et Memory Link pendant 3 ans.', '329 $'],
-];
+
+export const revalidate = 300;
+export function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/');
+}
 
 export default function Home() {
-  return <><SiteHeader homeThemes /><main className="home-page">
-    <section className="premium-hero">
-      <div className="premium-hero-copy">
-        <p className="eyebrow">Livres souvenirs personnalisés · Québec</p>
-        <h1>Chaque maison<br />a une histoire.</h1>
-        <p className="hero-lead">Un livre d’exception créé à partir de vos photos, de vos mots et de votre voix — pour emporter avec vous tout ce qu’une adresse ne raconte pas.</p>
-        <div className="hero-actions"><Link className="button" href="/atelier">Commencer mon histoire <span>→</span></Link><a className="quiet-link" href="#comment">Découvrir l’expérience <span className="quiet-link-arrow" aria-hidden="true" /></a></div>
-        <div className="premium-signature"><span>01</span><p><b>Créé avec soin</b>Votre histoire reste la vôtre, jusqu’au dernier mot.</p></div>
-      </div>
-      <div className="premium-hero-media"><img src="/memory-book-hero-v2.jpg" alt="Livres souvenirs Mémoire Maison dans un intérieur lumineux" /><div className="image-caption"><span>COLLECTION 2026</span><b>Le beau livre d’une vie à la maison.</b></div></div>
-    </section>
+  return <><SiteHeader /><main className="home-page">
+    <BookShowcase />
 
     <section className="trust-strip"><p><span>01</span> Vos mots, vos souvenirs</p><p><span>02</span> Une création accompagnée</p><p><span>03</span> Votre validation avant impression</p></section>
 
@@ -46,10 +41,7 @@ export default function Home() {
       <div className="memory-link-copy"><p className="eyebrow">Nouveau · Memory Link</p><h2>Le livre se referme.<br /><em>Les souvenirs continuent.</em></h2><p>Un QR code discret ouvre une archive privée de votre famille : photos, mini-film, récit et voix de ceux qui racontent.</p><ul><li><span>✓</span> Une page privée à transmettre aux proches</li><li><span>✓</span> Un lien qui évolue sans réimprimer le QR</li><li><span>✓</span> Carte premium ou porte-clé QR/NFC</li></ul><Link className="quiet-link" href="/memory/demo">Explorer un Memory Link →</Link></div>
     </section>
 
-    <section className="premium-books">
-      <div className="section-heading"><p className="eyebrow">Les livres</p><h2>Choisissez la place<br />que prendra votre histoire.</h2></div>
-      <div className="premium-book-grid">{books.map(([name, title, text, price], index) => <article key={name} className={index === 1 ? 'is-featured' : ''}><div className={`book-crop crop-${index + 1}`}><img src="/memory-book-collection-v2.jpg" alt="" /></div>{index === 1 ? <span className="popular">LE PLUS AIMÉ</span> : null}<p className="eyebrow">{name}</p><h3>{title}</h3><p>{text}</p><b>À partir de {price}</b><Link href="/atelier">Choisir {name} →</Link></article>)}</div>
-    </section>
+    <BookWheel />
 
     <section className="premium-story">
       <div className="story-photo"><img src="/family-memories-v2.jpg" alt="Une famille regarde ses photographies avant un déménagement" /><span>Les souvenirs qui nous suivent</span></div>

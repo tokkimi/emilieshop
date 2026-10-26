@@ -15,9 +15,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const supabase = await createSupabaseServerClient();
     const { data: row } = await supabase!.from('media').select('object_key,filename,content_type').eq('id', id).eq('owner_id', user.userId).maybeSingle();
     if (!row) return new Response('Média introuvable', { status: 404 });
-    const { data: object, error } = await supabase!.storage.from(supabaseMediaBucket).download(row.object_key);
-    if (error || !object) return new Response('Média introuvable', { status: 404 });
-    return new Response(object.stream(), { headers: { 'content-type': row.content_type, 'cache-control': 'private, max-age=3600', 'content-disposition': `inline; filename="${row.filename.replace(/["\\]/g, '')}"` } });
+    const { data: signed, error } = await supabase!.storage.from(supabaseMediaBucket).createSignedUrl(row.object_key, 300);
+    if (error || !signed) return new Response('Média introuvable', { status: 404 });
+    return new Response(null, { status: 307, headers: { location: signed.signedUrl, 'cache-control': 'private, no-store' } });
   }
   const rows = await getDb().select().from(media).where(and(eq(media.id, id), eq(media.ownerId, user.userId))).limit(1);
   if (!rows.length) return new Response('Média introuvable', { status: 404 });
