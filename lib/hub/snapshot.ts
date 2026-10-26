@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from '../supabase/server';
-import { getLuluConfiguration } from '../lulu';
+import { getProdigiConfiguration } from '../prodigi';
 import type { HubActionResult, HubSnapshot } from './types';
 
 // Sections de l'administration Mémoire Maison, exposées à la console centrale.
@@ -67,7 +67,7 @@ export async function memoireSnapshot(): Promise<HubSnapshot> {
   const count = (key: string) => { const m = new Map<string, number>(); for (const e of eventRows) { const k = e[key] || '—'; m.set(k, (m.get(k) || 0) + 1); } return [...m].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([label, value]) => ({ label, value })); };
   const byMonth = new Map<string, number>();
   for (const o of paid) { const k = String(o.created_at).slice(0, 7); byMonth.set(k, (byMonth.get(k) || 0) + o.total_cents); }
-  const lulu = getLuluConfiguration();
+  const prodigi = getProdigiConfiguration();
   const accountName = new Map(((accounts.data || []) as any[]).map((a) => [a.code, a.name]));
 
   const orderColumns = [
@@ -114,8 +114,8 @@ export async function memoireSnapshot(): Promise<HubSnapshot> {
           { label: 'Administration serveur', ok: !!process.env.SUPABASE_SECRET_KEY, detail: 'SUPABASE_SECRET_KEY' },
           { label: 'Paiements Stripe', ok: !!(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY), detail: 'STRIPE_SECRET_KEY' },
           { label: 'Courriels transactionnels', ok: !!(process.env.RESEND_API_KEY && process.env.EMAIL_FROM), detail: 'RESEND_API_KEY' },
-          { label: `Impression Lulu (${lulu.environment === 'production' ? 'production' : 'test'})`, ok: lulu.configured, detail: 'LULU_*' },
-          { label: 'Envoi automatique à l’impression', ok: lulu.ordersEnabled },
+          { label: `Impression Prodigi (${prodigi.environment === 'live' ? 'production' : 'test'})`, ok: prodigi.configured, detail: 'PRODIGI_API_KEY' },
+          { label: 'Envoi automatique à l’impression', ok: prodigi.ordersEnabled },
           { label: 'Composition du livre (IA)', ok: !!(process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY) },
         ] }],
       },
