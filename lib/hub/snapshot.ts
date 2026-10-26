@@ -68,16 +68,28 @@ export async function memoireSnapshot(): Promise<HubSnapshot> {
   const byMonth = new Map<string, number>();
   for (const o of paid) { const k = String(o.created_at).slice(0, 7); byMonth.set(k, (byMonth.get(k) || 0) + o.total_cents); }
   const lulu = getLuluConfiguration();
-  const accountName = new Map(((accounts.data || []) as any[]).map((a) => [a.code, a.name]));
+  const accountRows = (accounts.data || []) as any[];
+  const accountName = new Map(accountRows.map((a) => [a.code, a.name]));
+  const typeLabel: Record<string, string> = { asset: 'Actif', liability: 'Passif', equity: 'Capitaux propres', revenue: 'Produits', expense: 'Charges' };
+  const balances = new Map<string, number>();
+  for (const e of (entries.data || []) as any[]) {
+    if (e.status !== 'posted') continue;
+    for (const l of e.journal_lines || []) {
+      const acc = accountRows.find((a) => a.code === l.account_code);
+      if (!acc) continue;
+      const debitNormal = acc.account_type === 'asset' || acc.account_type === 'expense';
+      balances.set(l.account_code, (balances.get(l.account_code) || 0) + (debitNormal ? l.debit_cents - l.credit_cents : l.credit_cents - l.debit_cents));
+    }
+  }
 
   const orderColumns = [
     { key: 'number', label: 'Commande' }, { key: 'date', label: 'Date', format: 'datetime' as const },
     { key: 'client', label: 'Client' }, { key: 'status', label: 'Statut', format: 'badge' as const },
-    { key: 'invoice', label: 'Facture' }, { key: 'total', label: 'Total', format: 'money' as const, align: 'right' as const },
+    { key: 'invoice', label: 'Facture' }, { key: 'total', label: 'Total', format: 'money' as const, align: 'right' as const }, { key: 'doc', label: 'Pièce', format: 'link' as const },
   ];
   const orderTable = orderRows.map((o) => ({
     number: o.order_number, date: o.created_at, client: o.customer_email || who(o.owner_id), status: orderStatus[o.status] ?? o.status,
-    invoice: o.invoice_number ?? null, total: o.total_cents,
+    invoice: o.invoice_number ?? null, total: o.total_cents, doc: `${SITE}/admin/factures/${o.id}`,
   }));
   const projectTable = (rows: any[]) => rows.map((p) => ({
     title: p.title, client: who(p.owner_id), address: p.address, collection: p.collection,
@@ -157,6 +169,8 @@ export async function memoireSnapshot(): Promise<HubSnapshot> {
             { name: 'description', label: 'Description', type: 'text', required: true, placeholder: 'Fournisseur, logiciel, matériel…' },
             { name: 'amount', label: 'Montant CAD', type: 'number', min: 0.01, required: true },
           ] } },
+          { type: 'table', title: `Soldes des comptes ${year}`, description: 'Bilan et état des résultats tirés du grand livre.', columns: [{ key: 'code', label: 'Compte' }, { key: 'name', label: 'Intitulé' }, { key: 'type', label: 'Nature', format: 'badge' }, { key: 'balance', label: 'Solde', format: 'money', align: 'right' }],
+            rows: accountRows.map((a) => ({ code: a.code, name: a.name, type: typeLabel[a.account_type] ?? a.account_type, balance: balances.get(a.code) || 0 })), empty: 'Plan comptable non initialisé.' },
           { type: 'table', title: `Journal comptable ${year}`, columns: [{ key: 'date', label: 'Date', format: 'date' }, { key: 'ref', label: 'Référence' }, { key: 'desc', label: 'Description' }, { key: 'accounts', label: 'Comptes' }, { key: 'amount', label: 'Montant', format: 'money', align: 'right' }],
             rows: ((entries.data || []) as any[]).map((e) => ({ date: e.entry_date, ref: e.reference, desc: e.description, accounts: (e.journal_lines || []).map((l: any) => accountName.get(l.account_code) || l.account_code).join(' / '), amount: (e.journal_lines || []).reduce((t: number, l: any) => t + l.debit_cents, 0) })),
             empty: 'Aucune écriture cette année.' },
