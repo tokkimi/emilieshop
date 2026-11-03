@@ -43,6 +43,8 @@ export async function POST(request: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      // Cards work in CAD without enabling anything else in the Stripe dashboard.
+      payment_method_types: ['card'],
       locale,
       customer_email: order.customer_email || user.email,
       client_reference_id: order.id,
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
         metadata: { orderId: order.id, orderNumber: order.order_number, ownerId: order.owner_id },
       },
       metadata: { orderId: order.id, orderNumber: order.order_number, ownerId: order.owner_id, projectId: order.project_id },
-    }, { idempotencyKey: `checkout-${order.id}` });
+    }, { idempotencyKey: `checkout-card-${order.id}` });
     await admin.from('orders').update({ payment_provider: 'stripe', payment_reference: session.id, stripe_checkout_session_id: session.id, payment_status: 'checkout_created', updated_at: new Date().toISOString() }).eq('id', order.id);
     return NextResponse.json({ url: session.url });
   } catch (error) {
