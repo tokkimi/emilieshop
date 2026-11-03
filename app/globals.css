@@ -212,3 +212,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .profile-buttons .project-delete { background:transparent; border:0; padding:8px 4px; font-size:12px; color:#9b3b3b; text-decoration:underline; cursor:pointer; }
 .profile-buttons .project-delete:disabled { opacity:.5; cursor:default; }
 .site-footer .footer-brand>span:not(.brand-mark) { display:inline !important; }
+
+/* Header logo below 900px: the full signature, sized to the bar (it already contains the name). */
+.site-header .brand-compact .brand-signature { display:block; height:40px; width:auto; max-width:170px; object-fit:contain; }
+.site-header .brand-compact>span { display:none; }
+@media(max-width:430px){ .site-header .brand-compact .brand-signature { height:34px; max-width:140px; } }
