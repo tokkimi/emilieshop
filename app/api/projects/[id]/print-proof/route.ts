@@ -14,6 +14,12 @@ export async function GET(_request:Request,context:{params:Promise<{id:string}>}
     const result=await renderProdigiBook(book,user.userId,await memoryUrlForProject(id,user.userId));
     const {error}=await db.from('site_settings').upsert({key:`print_proof:${user.userId}:${id}`,value:{hash:printHash(book),version:generation.version,renderedAt:new Date().toISOString()},updated_at:new Date().toISOString()},{onConflict:'key'});
     if(error)throw new Error('Validation du fichier indisponible.');
-    return new Response(result.pdf as BodyInit,{headers:{'content-type':'application/pdf','content-disposition':'inline; filename="memoire-maison-bon-a-tirer.pdf"','cache-control':'private, no-store'}});
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(result.pdf);
+        controller.close();
+      },
+    });
+    return new Response(stream,{headers:{'content-type':'application/pdf','content-disposition':'inline; filename="memoire-maison-bon-a-tirer.pdf"','cache-control':'private, no-store'}});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Le fichier ne peut pas être préparé.'},{status:422});}
 }
