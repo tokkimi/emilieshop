@@ -18,7 +18,15 @@ export async function renderProdigiBook(book: GeneratedBook, ownerId: string, me
     const {data:row}=await db.from('media').select('object_key,content_type').eq('id',item.id).eq('owner_id',ownerId).eq('project_id',book.projectId).maybeSingle();
     if(!row)return null;
     const {data}=await db.storage.from(supabaseMediaBucket).download(row.object_key);if(!data)return null;
-    try { const bytes=await sharp(Buffer.from(await data.arrayBuffer()),{limitInputPixels:80_000_000}).rotate().resize({width:4000,height:5000,fit:"inside",withoutEnlargement:true}).png().toBuffer();return{bytes:new Uint8Array(bytes),contentType:'image/png'}; } catch{return null;}
+    try {
+      const image = sharp(Buffer.from(await data.arrayBuffer()), { limitInputPixels: 80_000_000 });
+      const { hasAlpha } = await image.metadata();
+      image.rotate().resize({ width: 4000, height: 5000, fit: 'inside', withoutEnlargement: true });
+      const bytes = await (hasAlpha ? image.png() : image.jpeg({ quality: 94, chromaSubsampling: '4:4:4' })).toBuffer();
+      return { bytes: new Uint8Array(bytes), contentType: hasAlpha ? 'image/png' : 'image/jpeg' };
+    } catch {
+      return null;
+    }
   };
   return buildProdigiPrintPdf({book,logoPng:Uint8Array.from(Buffer.from(MEMOIRE_LOGO_PNG_BASE64,'base64')),memoryUrl,loadMedia});
 }

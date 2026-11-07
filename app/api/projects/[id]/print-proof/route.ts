@@ -3,7 +3,7 @@ import { getChatGPTUser } from '../../../../chatgpt-auth';
 import { createSupabaseAdminClient } from '../../../../../lib/supabase/server';
 import { memoryUrlForProject, renderProdigiBook, printHash } from '../../../../../lib/prodigi-fulfilment';
 import type { GeneratedBook } from '../../../../../lib/book';
-export const runtime='nodejs';export const dynamic='force-dynamic';export const maxDuration=120;
+export const runtime='nodejs';export const dynamic='force-dynamic';export const maxDuration=300;
 export async function GET(_request:Request,context:{params:Promise<{id:string}>}){
   const user=await getChatGPTUser();if(!user)return NextResponse.json({error:'Authentification requise.'},{status:401});
   const {id}=await context.params;const db=createSupabaseAdminClient();if(!db)return NextResponse.json({error:'Service indisponible.'},{status:503});

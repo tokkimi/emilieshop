@@ -1,5 +1,4 @@
 import { printHash, type PrintSnapshot } from '../../../lib/prodigi-fulfilment';
-import { printerFromOptions } from '../../../lib/printers';
 import type { GeneratedBook } from '../../../lib/book';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -43,12 +42,12 @@ export async function POST(request:Request){
   }
   if(!generation||generation.version!==approval.version)return NextResponse.json({error:'Le livre a été modifié depuis la validation. Approuvez la nouvelle version.'},{status:409});
   const book=generation.result_data as GeneratedBook;
-  const printer=printerFromOptions(project.options)||book.printProvider||'prodigi';
+  if(book.printProvider==='mpix'||(Array.isArray(project.options)&&project.options.includes('printer:mpix')))return NextResponse.json({error:'Ce livre utilise une ancienne configuration. Reprenez-le dans le nouvel atelier.'},{status:409});
   const hash=printHash(book);
   if(hash!==approval.version_hash)return NextResponse.json({error:'Le livre doit être validé à nouveau avant de commander.'},{status:409});
   const {data:proof}=await admin.from('site_settings').select('value').eq('key',`print_proof:${user.userId}:${input.projectId}`).maybeSingle();
   if(proof?.value?.hash!==hash)return NextResponse.json({error:'Ouvrez et vérifiez le bon à tirer PDF de cette version avant de commander.'},{status:409});
-  const snapshot:PrintSnapshot={type:'print_snapshot',printer,book,hash,approvalId:approval.id,renderer:'prodigi-a4-v1'};
+  const snapshot:PrintSnapshot={type:'print_snapshot',printer:'prodigi',book,hash,approvalId:approval.id,renderer:'prodigi-a4-v1'};
   const subtotalCents=calculateCatalogSubtotal(input.planId,input.addOnIds);assertSustainablePrice(input.planId,subtotalCents);
   const shippingCents=estimateShippingCents(input.shippingAddress.countryCode);
   const tax=estimateTax(subtotalCents+shippingCents,input.shippingAddress.countryCode,input.shippingAddress.regionCode);

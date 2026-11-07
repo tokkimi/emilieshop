@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getChatGPTUser } from '../../../chatgpt-auth';
+import { snapshotFromItems } from '../../../../lib/prodigi-fulfilment';
 import { getPlan } from '../../../../lib/catalog';
 import { getStripe, siteOrigin } from '../../../../lib/stripe';
 import { markOrderPaidFromCheckout } from '../../../../lib/stripe-payments';
@@ -23,6 +24,11 @@ export async function POST(request: Request) {
   if (!order) return NextResponse.json({ error: 'Commande introuvable.' }, { status: 404 });
   if (order.status !== 'awaiting_payment') return NextResponse.json({ error: 'Cette commande ne peut plus être payée.' }, { status: 409 });
   const locale = order.locale === 'en' ? 'en' : 'fr';
+  if (snapshotFromItems(order.items)?.printer !== 'prodigi') {
+    return NextResponse.json({
+      error: locale === 'en' ? 'Reopen the book and approve a new print proof before paying.' : 'Rouvrez le livre et approuvez un nouveau bon à tirer avant de payer.',
+    }, { status: 409 });
+  }
   const plan = getPlan(order.product_code);
   const origin = siteOrigin(request);
   const lineItems = [

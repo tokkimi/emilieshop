@@ -70,7 +70,7 @@ export function BookPreview({ locale = 'fr' }: { locale?: BookLocale }) {
   const [proofBusy, setProofBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const profile = en ? '/en/profile' : '/profil';
-  const studio = book.printProvider ? `${en?'/en/studio':'/atelier'}/${book.printProvider}` : en ? '/en/studio' : '/atelier';
+  const studio = en ? '/en/studio' : '/atelier';
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

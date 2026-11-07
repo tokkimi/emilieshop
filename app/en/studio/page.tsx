@@ -1,4 +1,4 @@
 import type { Metadata } from 'next';
-import { PrinterChoice } from '../../components/PrinterChoice';
+import { BookCustomizer } from '../../components/BookCustomizer';
 export const metadata:Metadata={title:'Creation studio — Mémoire Maison',robots:{index:false,follow:false}};
-export default function EnglishStudioPage(){return <PrinterChoice locale="en"/>}
+export default function Page(){return <BookCustomizer locale="en" printer="prodigi"/>;}
