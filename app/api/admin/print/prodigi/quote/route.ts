@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../../../../chatgpt-auth';
+import { getAccountUser } from '../../../../../account-auth';
 import { isAdmin } from '../../../../../../lib/admin-auth';
 export const dynamic = 'force-dynamic';
 const inputSchema = z.object({ country: z.enum(['CA', 'US', 'FR']), copies: z.number().int().min(1).max(2), pageCount: z.literal(24) });
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!(await isAdmin(user))) return NextResponse.json({ error: 'Accès administrateur requis.' }, { status: 403 });
   const input = inputSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: 'Paramètres de devis invalides.' }, { status: 400 });

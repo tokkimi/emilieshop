@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getChatGPTUser, type ChatGPTUser } from '../app/chatgpt-auth';
+import { getAccountUser, type AccountUser } from '../app/account-auth';
 import { isAdmin, isOwnerUser } from './admin-auth';
 import { createSupabaseAdminClient } from './supabase/server';
 
-export type AdminContext = { user: ChatGPTUser; db: SupabaseClient; owner: boolean };
+export type AdminContext = { user: AccountUser; db: SupabaseClient; owner: boolean };
 
 /**
  * Every admin route starts here: a verified admin session and the service
@@ -12,7 +12,7 @@ export type AdminContext = { user: ChatGPTUser; db: SupabaseClient; owner: boole
  * non-admin). Returns a response to send back when either is missing.
  */
 export async function adminContext(): Promise<AdminContext | NextResponse> {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user || !(await isAdmin(user))) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
   const db = createSupabaseAdminClient();
   if (!db) return NextResponse.json({ error: 'Service indisponible' }, { status: 503 });

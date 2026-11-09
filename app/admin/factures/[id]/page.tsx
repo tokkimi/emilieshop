@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { requireChatGPTUser } from "../../../chatgpt-auth";
+import { requireAccountUser } from "../../../account-auth";
 import { isAdmin } from "../../../../lib/admin-auth";
 import { createSupabaseAdminClient } from "../../../../lib/supabase/server";
 import { formatCad, getPlan } from "../../../../lib/catalog";
@@ -9,7 +9,7 @@ export default async function InvoicePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireChatGPTUser("/admin");
+  const user = await requireAccountUser("/admin");
   if (!(await isAdmin(user))) redirect("/connexion?admin=refuse");
   const { id } = await params;
   const db = createSupabaseAdminClient();

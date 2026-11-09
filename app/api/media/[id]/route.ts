@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { and, eq } from 'drizzle-orm';
-import { getChatGPTUser } from '../../../chatgpt-auth';
+import { getAccountUser } from '../../../account-auth';
 import { getDb } from '../../../../db';
 import { media } from '../../../../db/schema';
 import { hasSupabasePublicConfig, supabaseMediaBucket } from '../../../../lib/supabase/config';
@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return new Response('Authentification requise', { status: 401 });
   const { id } = await context.params;
   if (hasSupabasePublicConfig()) {

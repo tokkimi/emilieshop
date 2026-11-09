@@ -128,7 +128,7 @@ Mise à jour : 22 septembre 2026. Cette liste distingue ce qui existe vraiment, 
 
 ### 6. Comptes clients
 
-- [x] Mettre en place une connexion publique Supabase sans mot de passe, indépendante d'un compte ChatGPT.
+- [x] Mettre en place une connexion publique Supabase sans mot de passe, liée au compte client.
 - [ ] Configurer l’adresse d’envoi et le modèle du courriel de connexion.
 - [ ] Prévoir invitation, expiration, renvoi du lien et changement d’adresse courriel.
 - [x] Charger les vrais projets, commandes et messages dans le profil connecté ; gestion complète des Memory Links à poursuivre.

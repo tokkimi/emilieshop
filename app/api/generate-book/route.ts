@@ -1,5 +1,5 @@
 import { generateText, Output } from 'ai';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { refineBookLayout } from '../../../lib/book-layout';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -57,7 +57,7 @@ const outputSchema = z.object({ pages: z.array(pageSchema).min(6).max(12) });
 const defaultModel = process.env.BOOK_MODEL || 'openai/gpt-4.1';
 
 export async function POST(request: Request) {
-  if (!(await getChatGPTUser())) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+  if (!(await getAccountUser())) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   let raw: unknown;
   try {
     raw = await request.json();

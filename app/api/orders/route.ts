@@ -2,7 +2,7 @@ import { printHash, type PrintSnapshot } from '../../../lib/prodigi-fulfilment';
 import type { GeneratedBook } from '../../../lib/book';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { assertSustainablePrice, calculateCatalogSubtotal, estimateShippingCents, formatCad, getPlan } from '../../../lib/catalog';
 import { estimateTax } from '../../../lib/tax';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../../../lib/supabase/server';
@@ -12,7 +12,7 @@ export const dynamic='force-dynamic';
 const schema=z.object({projectId:z.string().uuid(),planId:z.enum(['essential','keepsake','family']),addOnIds:z.array(z.enum(['extra-copy','mini-film','memory-link','digital-frame'])).max(8).default([]),locale:z.enum(['fr','en']).default('fr'),shippingAddress:z.object({name:z.string().min(2).max(120),street1:z.string().min(3).max(150),street2:z.string().max(150).optional(),city:z.string().min(2).max(100),regionCode:z.string().min(2).max(3),countryCode:z.string().length(2),postalCode:z.string().min(3).max(20),phone:z.string().min(8).max(25)})});
 
 export async function GET(){
-  const user=await getChatGPTUser();if(!user)return NextResponse.json({error:'Authentification requise'},{status:401});
+  const user=await getAccountUser();if(!user)return NextResponse.json({error:'Authentification requise'},{status:401});
   const supabase=await createSupabaseServerClient();if(!supabase)return NextResponse.json({error:'Service indisponible'},{status:503});
   const {data,error}=await supabase.from('orders').select('*').eq('owner_id',user.userId).order('created_at',{ascending:false});
   if(error)return NextResponse.json({error:'Commandes indisponibles'},{status:503});
@@ -20,7 +20,7 @@ export async function GET(){
 }
 
 export async function POST(request:Request){
-  const user=await getChatGPTUser();if(!user)return NextResponse.json({error:'Créez ou ouvrez votre compte avant de commander.'},{status:401});
+  const user=await getAccountUser();if(!user)return NextResponse.json({error:'Créez ou ouvrez votre compte avant de commander.'},{status:401});
   const parsed=schema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:'Les informations de commande sont incomplètes.'},{status:400});
   const input=parsed.data;const admin=createSupabaseAdminClient();if(!admin)return NextResponse.json({error:'Service de commande indisponible.'},{status:503});
   const {data:project,error:projectError}=await admin.from('projects').select('id,title,status,options').eq('id',input.projectId).eq('owner_id',user.userId).maybeSingle();

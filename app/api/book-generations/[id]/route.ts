@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../../chatgpt-auth';
+import { getAccountUser } from '../../../account-auth';
 import { getDb } from '../../../../db';
 import { bookGenerations } from '../../../../db/schema';
 import { hasSupabasePublicConfig } from '../../../../lib/supabase/config';
@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const { id } = await context.params;
   const input = await request.json() as { book?: unknown; version?: number; status?: string };

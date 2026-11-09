@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../../chatgpt-auth';
+import { getAccountUser } from '../../../account-auth';
 import { snapshotFromItems } from '../../../../lib/prodigi-fulfilment';
 import { getPlan } from '../../../../lib/catalog';
 import { getStripe, siteOrigin } from '../../../../lib/stripe';
@@ -13,7 +13,7 @@ export const maxDuration=300;
 const postSchema = z.object({ orderId: z.string().uuid() });
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise.' }, { status: 401 });
   const parsed = postSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: 'Commande invalide.' }, { status: 400 });
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise.' }, { status: 401 });
   const sessionId = new URL(request.url).searchParams.get('sessionId');
   const stripe = getStripe();
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.metadata?.ownerId !== user.userId) return NextResponse.json({ error: 'Accès refusé.' }, { status: 403 });
     const result = await markOrderPaidFromCheckout(session);
-    return NextResponse.json({ paid: session.payment_status === 'paid', orderNumber: session.metadata?.orderNumber, updated: result.updated });
+    return NextResponse.json({ paid: session.payment_status === 'paid', orderNumber: session.metadata?.orderNumber, updated: result.updated, measurement: { id: session.id, value: (session.amount_total ?? 0) / 100, currency: (session.currency ?? 'cad').toUpperCase() } });
   } catch {
     return NextResponse.json({ error: 'Paiement impossible à vérifier.' }, { status: 503 });
   }

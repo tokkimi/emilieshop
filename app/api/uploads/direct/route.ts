@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../../chatgpt-auth';
+import { getAccountUser } from '../../../account-auth';
 import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 import { supabaseMediaBucket } from '../../../../lib/supabase/config';
 
@@ -11,7 +11,7 @@ const requestSchema = z.discriminatedUnion('action', [
 ]);
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Reconnectez-vous pour enregistrer vos photos.' }, { status: 401 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Fichier invalide : image, audio ou vidéo de 25 Mo maximum.' }, { status: 400 });

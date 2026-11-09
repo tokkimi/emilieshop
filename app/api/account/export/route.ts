@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../../chatgpt-auth';
+import { getAccountUser } from '../../../account-auth';
 import { hasSupabasePublicConfig } from '../../../../lib/supabase/config';
 import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   if (!hasSupabasePublicConfig()) return NextResponse.json({ error: 'Export cloud non configuré' }, { status: 503 });
   const supabase = await createSupabaseServerClient();

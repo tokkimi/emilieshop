@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { getDb } from '../../../db';
 import { approvals, projects } from '../../../db/schema';
 import { hasSupabasePublicConfig } from '../../../lib/supabase/config';
@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from '../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const input = await request.json() as { projectId?: string; versionHash?: string; version?: number };
   if (!input.projectId || !input.versionHash || !Number.isInteger(input.version) || (input.version || 0) < 1) return NextResponse.json({ error: 'Validation incomplète' }, { status: 400 });

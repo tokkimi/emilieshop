@@ -1,7 +1,7 @@
 import { fulfilProdigiOrder, snapshotFromItems, syncProdigiOrder } from '../../../../../../lib/prodigi-fulfilment';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../../../../chatgpt-auth';
+import { getAccountUser } from '../../../../../account-auth';
 import { isAdmin } from '../../../../../../lib/admin-auth';
 import { getProdigiConfiguration, getProdigiQuote, ProdigiApiError } from '../../../../../../lib/prodigi';
 import { supabaseMediaBucket } from '../../../../../../lib/supabase/config';
@@ -14,7 +14,7 @@ const actionSchema = z.object({ action: z.enum(['quote', 'submit', 'sync']) });
 export const maxDuration = 300;
 
 async function authorize() {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   return user && (await isAdmin(user)) ? user : null;
 }
 

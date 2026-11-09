@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { SiteMeasurement, MeasurementConsent } from '@/components/site-measurement';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -51,6 +53,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased home-theme-navy`}
       >
+        <Suspense fallback={null}><SiteMeasurement /><MeasurementConsent /></Suspense>
         <ScrollToTop />
         <VisitTracker />
         {children}

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../../../chatgpt-auth';
+import { getAccountUser } from '../../../../account-auth';
 import { createSupabaseAdminClient } from '../../../../../lib/supabase/server';
 import { memoryUrlForProject, renderProdigiBook, printHash } from '../../../../../lib/prodigi-fulfilment';
 import type { GeneratedBook } from '../../../../../lib/book';
 export const runtime='nodejs';export const dynamic='force-dynamic';export const maxDuration=300;
 export async function GET(_request:Request,context:{params:Promise<{id:string}>}){
-  const user=await getChatGPTUser();if(!user)return NextResponse.json({error:'Authentification requise.'},{status:401});
+  const user=await getAccountUser();if(!user)return NextResponse.json({error:'Authentification requise.'},{status:401});
   const {id}=await context.params;const db=createSupabaseAdminClient();if(!db)return NextResponse.json({error:'Service indisponible.'},{status:503});
   const {data:generation}=await db.from('book_generations').select('result_data,version').eq('project_id',id).eq('owner_id',user.userId).order('updated_at',{ascending:false}).limit(1).maybeSingle();
   if(!generation)return NextResponse.json({error:'Livre introuvable.'},{status:404});

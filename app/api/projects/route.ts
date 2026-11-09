@@ -1,13 +1,13 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { getDb } from '../../../db';
 import { projects, users } from '../../../db/schema';
 import { hasSupabasePublicConfig, supabaseMediaBucket } from '../../../lib/supabase/config';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 export async function GET() {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   if (hasSupabasePublicConfig()) {
     const supabase = await createSupabaseServerClient();
@@ -20,7 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const input = await request.json() as Record<string, unknown>;
   const id = crypto.randomUUID();
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 const DELETABLE_STATUSES = ['draft', 'generating', 'preview', 'changes_requested'];
 
 export async function DELETE(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const id = new URL(request.url).searchParams.get('id') || '';
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Projet invalide' }, { status: 400 });

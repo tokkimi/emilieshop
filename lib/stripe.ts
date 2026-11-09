@@ -23,5 +23,5 @@ export function siteOrigin(request?: Request) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
   if (configured) return configured;
   if (request) return new URL(request.url).origin;
-  return 'https://emilieshop.vercel.app';
+  return 'https://memoiremaison.com';
 }

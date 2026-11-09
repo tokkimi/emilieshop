@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { getDb } from '../../../db';
 import { media, projects } from '../../../db/schema';
 import { hasSupabasePublicConfig, supabaseMediaBucket } from '../../../lib/supabase/config';
@@ -9,7 +9,7 @@ import { createSupabaseServerClient } from '../../../lib/supabase/server';
 export const dynamic = 'force-dynamic';
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const form = await request.formData();
   const file = form.get('file');

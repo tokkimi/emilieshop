@@ -1,4 +1,4 @@
-import type { ChatGPTUser } from '../app/chatgpt-auth';
+import type { AccountUser } from '../app/account-auth';
 import { createSupabaseAdminClient } from './supabase/server';
 
 const launchOwnerEmail = 'emilie@equipecauvier.com';
@@ -15,17 +15,17 @@ function emailList(value: string) {
     .filter(Boolean);
 }
 
-function normalized(user: ChatGPTUser) {
+function normalized(user: AccountUser) {
   return user.email.trim().toLowerCase();
 }
 
 // Propriétaire : ADMIN_EMAILS (fondatrice). Seule à pouvoir gérer les accès admin.
-export function isOwnerUser(user: ChatGPTUser): boolean {
+export function isOwnerUser(user: AccountUser): boolean {
   return [...emailList(process.env.ADMIN_EMAILS || launchOwnerEmail), SITE_ADMIN_EMAIL].includes(normalized(user));
 }
 
 // Accès administrateur par variables Vercel : ADMIN_EMAILS (fondatrice) + ADMIN_TEST_EMAILS (comptes de test).
-export function isAdminUser(user: ChatGPTUser): boolean {
+export function isAdminUser(user: AccountUser): boolean {
   return isOwnerUser(user) || emailList(process.env.ADMIN_TEST_EMAILS || '').includes(normalized(user));
 }
 
@@ -41,7 +41,7 @@ export async function listDashboardAdminEmails(): Promise<string[]> {
 }
 
 // Accès administrateur complet : variables Vercel, ou accès ajoutés depuis le tableau de bord.
-export async function isAdmin(user: ChatGPTUser | null): Promise<boolean> {
+export async function isAdmin(user: AccountUser | null): Promise<boolean> {
   if (!user) return false;
   if (isAdminUser(user)) return true;
   return (await listDashboardAdminEmails()).includes(normalized(user));

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const origin = 'https://memoire-maison-emilie.bimabima700700.chatgpt.site';
+const origin = 'https://memoiremaison.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

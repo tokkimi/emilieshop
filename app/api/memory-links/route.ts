@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getChatGPTUser } from '../../chatgpt-auth';
+import { getAccountUser } from '../../account-auth';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ function randomSlug(length = 12) {
 
 // Crée (ou retrouve) l'adresse secrète du Memory Link d'un projet.
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getAccountUser();
   if (!user) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Projet manquant' }, { status: 400 });

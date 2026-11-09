@@ -1,4 +1,5 @@
 "use client";
+import { canMeasure, track } from "@/lib/measurement";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "./SafeLink";
 import {
@@ -73,9 +74,17 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
       if (payment === "success" && sessionId) {
         setStatus("sending");
         fetch(`/api/stripe/checkout?sessionId=${encodeURIComponent(sessionId)}`)
-          .then(async (response) => ({ ok: response.ok, result: await response.json() as { paid?: boolean; orderNumber?: string; error?: string } }))
+          .then(async (response) => ({ ok: response.ok, result: await response.json() as { paid?: boolean; orderNumber?: string; error?: string; measurement?: { id: string; value: number; currency: string } } }))
           .then(({ ok, result }) => {
             if (!ok || !result.paid) throw new Error(result.error || "payment");
+            const purchase = result.measurement;
+            if (purchase && purchase.currency === "CAD" && canMeasure()) {
+              const key = `memoire-purchase:${purchase.id}`;
+              if (!localStorage.getItem(key)) {
+                track('purchase', { transactionId: purchase.id, value: purchase.value });
+                localStorage.setItem(key, '1');
+              }
+            }
             localStorage.removeItem(CART_STORAGE_KEY);
             setOrderNumber(result.orderNumber || "Maison Mémoire");
             setStatus("done");
@@ -128,6 +137,7 @@ export function CheckoutForm({ locale = "fr" }: { locale?: "fr" | "en" }) {
     const result = await checkout.json() as { url?: string; error?: string };
     if (!checkout.ok || !result.url) throw new Error(result.error || (en ? "Secure payment is unavailable." : "Le paiement sécurisé est indisponible."));
     localStorage.removeItem(CART_STORAGE_KEY);
+    track('begin_checkout', { value: total / 100 });
     window.location.assign(result.url);
   };
   const submit = async (event: FormEvent) => {
