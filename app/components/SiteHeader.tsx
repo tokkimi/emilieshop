@@ -33,6 +33,7 @@ export function SiteFooter({ locale = 'fr' }: { locale?: 'fr' | 'en' }) {
       <div><h4>{en ? 'Professionals' : 'Professionnels'}</h4><Link href={en ? '/en/professionals' : '/professionnels'}>{en ? 'Realtor offer' : 'Offre courtiers'}</Link><a href="mailto:emilie@equipecauvier.com">{en ? 'Contact us' : 'Nous écrire'}</a></div>
       <div><h4>{en ? 'Receive our stories' : 'Recevoir nos histoires'}</h4><p>{en ? 'A gentle letter about home, memory and new beginnings.' : 'Une lettre douce sur la maison, la mémoire et les nouveaux départs.'}</p><NewsletterForm locale={locale} /></div>
       <small>© 2026 Mémoire Maison · Québec, Canada · <Link href={en ? '/en/terms' : '/conditions-generales'}>{en ? 'Terms' : 'Conditions générales'}</Link> · <Link href={en ? '/en/privacy' : '/politique-confidentialite'}>{en ? 'Privacy' : 'Confidentialité'}</Link> · {!en ? <><Link href="/consentements">Consentements</Link> · <Link href="/livraison-retours">Livraison & retours</Link></> : 'Consents'}</small>
+      <small style={{ fontSize: "9px", opacity: 0.5 }}>Made by Alexia Naudy</small>
     </footer>
   );
 }
